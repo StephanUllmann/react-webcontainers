@@ -15,7 +15,9 @@ import {
 } from './services/webContainer';
 import { convertToMonacoFiles } from './services/monacoConverter';
 import type { MonacoFiles } from './types';
-import FileTree from './components/FileTree';
+import Sidebar from './components/Sidebar';
+import Preview from './components/Preview';
+import TerminalContainer from './components/TerminalContainer';
 
 const url =
   new URL(window.location.href).searchParams.get('q') ??
@@ -48,76 +50,8 @@ function App() {
   // Layout State
   const [col1, setCol1] = useState(250); // File Tree width
   const [col2, setCol2] = useState(1000); // Editor + File Tree width
-  const [row, setRow] = useState(() => window.innerHeight * 0.75); // Editor + File Tree width
-  const [isDragging, setIsDragging] = useState(false); // Crucial for iframe fix
-
-  // Resizing Handlers
-  const handleMouseDownRow = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const newRow = moveEvent.clientY;
-      console.log('newRow:', newRow);
-      setRow(newRow);
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-
-      terminalAddonRef.current.fit();
-
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  //
-  const handleMouseDownCol1 = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const newCol1 = Math.max(10, Math.min(moveEvent.clientX, 300));
-      setCol1(newCol1);
-
-      // Ensure col2 gets pushed if col1 becomes too large
-      setCol2((prevCol2) => Math.max(prevCol2, newCol1 + 200));
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const handleMouseDownCol2 = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const minCol2 = col1 + 200;
-      const maxCol2 = window.innerWidth - 200;
-      const newCol2 = Math.max(minCol2, Math.min(moveEvent.clientX, maxCol2));
-      setCol2(newCol2);
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
+  const [row, setRow] = useState(() => window.innerHeight * 0.75); // Editor + File Tree height
+  const [isDragging, setIsDragging] = useState(false);
 
   async function handleEditorDidMount(
     editor: editor.IStandaloneCodeEditor,
@@ -198,21 +132,14 @@ function App() {
         cursor: isDragging ? 'col-resize' : 'auto',
       }}
     >
-      <aside className="relative row-span-2 h-full w-full">
-        {monacoFiles ? (
-          <FileTree
-            files={monacoFiles}
-            activeFile={fileName}
-            setActiveFile={setFileName}
-          />
-        ) : (
-          <h2>Loading...</h2>
-        )}
-        <div
-          className="absolute top-0 right-0 bottom-0 z-10 h-full w-1 cursor-col-resize bg-slate-800 transition-all hover:w-2 hover:bg-slate-700 active:w-2 active:bg-slate-700"
-          onMouseDown={handleMouseDownCol1}
-        />
-      </aside>
+      <Sidebar
+        monacoFiles={monacoFiles}
+        fileName={fileName}
+        setFileName={setFileName}
+        setCol1={setCol1}
+        setCol2={setCol2}
+        setIsDragging={setIsDragging}
+      />
       <Editor
         className="h-full"
         theme="vs-dark"
@@ -229,35 +156,22 @@ function App() {
           scrollBeyondLastLine: false,
         }}
       />
-      <div className="relative flex h-full w-full">
-        <div
-          className="absolute top-0 bottom-0 left-0 z-10 h-full w-1.5 cursor-col-resize bg-slate-800 transition-all hover:bg-slate-700 active:w-2 active:bg-slate-700"
-          onMouseDown={handleMouseDownCol2}
-        />
-        <iframe
-          className="ml-1.5 h-full w-full"
-          ref={iFrameRef}
-          src="loading.html"
-          style={{ pointerEvents: isDragging ? 'none' : 'auto' }}
-        />
-      </div>
-      <div className="relative col-span-2 col-start-2 bg-black text-start">
-        <div
-          className="absolute top-0 right-0 left-0 z-10 h-1 w-full cursor-row-resize bg-slate-800 transition-all hover:bg-slate-700 active:bg-slate-700"
-          onMouseDown={handleMouseDownRow}
-        />
-        <div
-          ref={terminalDivRef}
-          id="terminal"
-          className="pt-1 text-start"
-          style={{
-            height: `${window.innerHeight - row}px`,
-          }}
-        ></div>
-      </div>
+      <Preview
+        iFrameRef={iFrameRef}
+        isDragging={isDragging}
+        setIsDragging={setIsDragging}
+        col1={col1}
+        setCol2={setCol2}
+      />
+      <TerminalContainer
+        terminalDivRef={terminalDivRef}
+        row={row}
+        setRow={setRow}
+        setIsDragging={setIsDragging}
+        terminalAddonRef={terminalAddonRef}
+      />
     </div>
   );
 }
 
 export default App;
-// className="col col-span-2 col-start-2 h-[20dvh] text-start"
