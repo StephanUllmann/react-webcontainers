@@ -30,13 +30,14 @@ export async function startShell(
 }
 
 export async function initWebContainer(
-  terminalRef: React.RefObject<Terminal>,
-  terminalAddonRef: React.RefObject<FitAddon>,
+  terminalRef: React.RefObject<Terminal | null>,
+  terminalAddonRef: React.RefObject<FitAddon | null>,
   terminalDivRef: React.RefObject<HTMLDivElement | null>,
   webContainer: React.RefObject<WebContainer | null>,
   files: React.RefObject<any>,
   iFrameRef: React.RefObject<HTMLIFrameElement | null>
 ) {
+  if (!terminalRef.current || !terminalAddonRef.current) return;
   terminalRef.current.loadAddon(terminalAddonRef.current);
   terminalRef.current.open(terminalDivRef.current!);
 
@@ -51,6 +52,7 @@ export async function initWebContainer(
   const shProcess = await startShell(terminalRef.current, webContainer.current);
 
   window.addEventListener('resize', () => {
+    if (!terminalAddonRef.current || !terminalRef.current) return;
     terminalAddonRef.current.fit();
 
     shProcess.resize({

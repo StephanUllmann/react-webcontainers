@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { WebContainer } from '@webcontainer/api';
+import { use, useEffect, useRef, useState } from 'react';
+import { WebContainer, type FileSystemTree } from '@webcontainer/api';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
@@ -23,29 +23,32 @@ const url =
   new URL(window.location.href).searchParams.get('q') ??
   'SDG-027/04_React_Intro/main/04-react-state-korrekturen/002-light-bulb';
 
-const isDev = import.meta.env.VITE_IS_DEV;
+const isDev = import.meta.env.VITE_IS_DEV === 'true';
+
+const data = isDev
+  ? null
+  : fetch(`https://gh-proxy.stephan-ullmann.workers.dev/files/${url}`).then(
+      (res) => {
+        console.log('fetching...');
+        return res.json();
+      }
+    );
 
 function App() {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
   const terminalDivRef = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<Terminal | null>(null);
+  const terminalAddonRef = useRef<FitAddon | null>(null);
+  const webContainer = useRef<WebContainer | null>(null);
 
-  const terminalRef = useRef(
-    new Terminal({
-      convertEol: true,
-    })
-  );
-  const terminalAddonRef = useRef(new FitAddon());
-  const webContainer = useRef<WebContainer>(null);
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const files = useRef(mockData);
+  const files = useRef<FileSystemTree>(null);
   const [monacoFiles, setMonacoFiles] = useState<MonacoFiles>({});
   const [fileName, setFileName] = useState('');
 
-  const file = monacoFiles[fileName];
+  const activeFile = monacoFiles[fileName];
 
-  // Editor
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Layout State
   const [col1, setCol1] = useState(250); // File Tree width
@@ -57,12 +60,19 @@ function App() {
     editor: editor.IStandaloneCodeEditor,
     _monaco: Monaco
   ) {
-    const mFiles = convertToMonacoFiles(files.current);
+    if (webContainer.current) return;
+    files.current = isDev ? mockData : await data;
+
+    const mFiles = convertToMonacoFiles(files.current!);
     setMonacoFiles(mFiles);
 
     editorRef.current = editor;
-    if (webContainer.current) return;
-    if (!iFrameRef.current || !terminalDivRef.current || !editorRef.current)
+    if (
+      !iFrameRef.current ||
+      !terminalDivRef.current ||
+      !editorRef.current ||
+      !terminalRef
+    )
       return;
     await initWebContainer(
       terminalRef,
@@ -73,17 +83,17 @@ function App() {
       iFrameRef
     );
     setFileName('src/App.jsx');
-    terminalAddonRef.current.fit();
+    terminalAddonRef.current?.fit();
     const isNode = 'package.json' in mFiles;
     if (isNode && !isDev) {
       const installCode = await installDependencies(
         webContainer.current!,
-        terminalRef.current
+        terminalRef.current!
       );
       if (installCode !== 0) return;
       startDevServer(
         webContainer.current!,
-        terminalRef.current,
+        terminalRef.current!,
         iFrameRef.current
       );
     }
@@ -115,6 +125,11 @@ function App() {
   }
 
   useEffect(() => {
+    terminalRef.current = new Terminal({
+      convertEol: true,
+    });
+    terminalAddonRef.current = new FitAddon();
+
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
@@ -143,9 +158,9 @@ function App() {
       <Editor
         className="h-full"
         theme="vs-dark"
-        path={file?.name}
-        defaultLanguage={file?.language}
-        defaultValue={file?.value}
+        path={activeFile?.name}
+        defaultLanguage={activeFile?.language}
+        defaultValue={activeFile?.value}
         onMount={handleEditorDidMount}
         onChange={handleEditorChange}
         options={{
