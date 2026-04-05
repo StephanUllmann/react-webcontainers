@@ -1,14 +1,16 @@
 import type { FileSystemTree } from '@webcontainer/api';
 import type { MonacoFiles } from '../types';
 
-function getMonacoLanguage(filename: string) {
+export function getMonacoLanguage(filename = 'plaintext') {
   const ext = filename.split('.').pop()!.toLowerCase();
   switch (ext) {
     case 'js':
     case 'jsx':
+    case 'javascript':
       return 'javascript';
     case 'ts':
     case 'tsx':
+    case 'typescript':
       return 'typescript';
     case 'css':
       return 'css';
@@ -17,7 +19,16 @@ function getMonacoLanguage(filename: string) {
     case 'json':
       return 'json';
     case 'md':
+    case 'markdown':
       return 'markdown';
+    case 'py':
+    case 'python':
+      return 'python';
+    case 'cs':
+    case 'csharp':
+      return 'csharp';
+    case 'sql':
+      return 'sql';
     default:
       return 'plaintext';
   }
@@ -62,7 +73,7 @@ export function convertToMonacoFiles(tree: FileSystemTree, basePath = '') {
 
 /**
  * Updates a MonacoFiles dictionary given a file path and new content.
- * 
+ *
  * If content is null, it interprets it as a file deletion and removes
  * it from the resulting dictionary.
  * Otherwise, it adds or updates the file, inferring its language.

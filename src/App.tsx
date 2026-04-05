@@ -16,7 +16,11 @@ import {
   watchWebContainerFiles,
   writeToWebContainer,
 } from './services/webContainer';
-import { convertToMonacoFiles, fsToMonaco } from './services/monacoConverter';
+import {
+  convertToMonacoFiles,
+  fsToMonaco,
+  getMonacoLanguage,
+} from './services/monacoConverter';
 import type { MonacoFiles } from './types';
 import Sidebar from './components/Sidebar';
 import Preview from './components/Preview';
@@ -202,6 +206,7 @@ function App() {
     };
   }, []);
 
+  console.log(activeFile);
   return (
     <div
       className={`grid min-h-screen bg-(--bg-primary)`}
@@ -240,7 +245,7 @@ function App() {
               <div className="loading-text">Initializing Editor</div>
             </div>
           }
-          defaultLanguage={activeFile?.language}
+          defaultLanguage={getMonacoLanguage(activeFile?.language)}
           defaultValue={activeFile?.value}
           beforeMount={handleEditorWillMount}
           onMount={handleEditorDidMount}
