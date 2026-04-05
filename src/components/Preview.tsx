@@ -11,7 +11,7 @@ interface PreviewProps {
 /**
  * The Preview component renders an iframe showing the running project.
  *
- * It also renders a drag handle on its left edge to allow resizing the 
+ * It also renders a drag handle on its left edge to allow resizing the
  * split between the editor and the preview panes.
  */
 export default function Preview({
@@ -49,7 +49,7 @@ export default function Preview({
         onMouseDown={handleMouseDownCol2}
       />
       <iframe
-        className="ml-1.5 h-full w-full"
+        className="ml-1 h-full w-full"
         ref={iFrameRef}
         src="loading.html"
         style={{ pointerEvents: isDragging ? 'none' : 'auto' }}
