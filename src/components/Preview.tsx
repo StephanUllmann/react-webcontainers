@@ -8,6 +8,12 @@ interface PreviewProps {
   setCol2: React.Dispatch<React.SetStateAction<number>>;
 }
 
+/**
+ * The Preview component renders an iframe showing the running project.
+ *
+ * It also renders a drag handle on its left edge to allow resizing the 
+ * split between the editor and the preview panes.
+ */
 export default function Preview({
   iFrameRef,
   isDragging,

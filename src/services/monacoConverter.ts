@@ -23,6 +23,16 @@ function getMonacoLanguage(filename: string) {
   }
 }
 
+/**
+ * Recursively flattens a WebContainer FileSystemTree into a flat dictionary
+ * suitable for the Monaco editor and the file tree component.
+ *
+ * It infers the language of each file based on its extension.
+ *
+ * @param tree - The WebContainer FileSystemTree
+ * @param basePath - Current base path during recursion
+ * @returns A flat dictionary of MonacoFiles
+ */
 export function convertToMonacoFiles(tree: FileSystemTree, basePath = '') {
   let monacoFiles: MonacoFiles = {};
 
@@ -50,6 +60,18 @@ export function convertToMonacoFiles(tree: FileSystemTree, basePath = '') {
   return monacoFiles;
 }
 
+/**
+ * Updates a MonacoFiles dictionary given a file path and new content.
+ * 
+ * If content is null, it interprets it as a file deletion and removes
+ * it from the resulting dictionary.
+ * Otherwise, it adds or updates the file, inferring its language.
+ *
+ * @param prev - Previous MonacoFiles dictionary state
+ * @param path - Path of the file updated or deleted
+ * @param content - New file content, or null if deleted
+ * @returns Updated MonacoFiles dictionary
+ */
 export function fsToMonaco(
   prev: MonacoFiles,
   path: string,

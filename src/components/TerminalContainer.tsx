@@ -9,6 +9,12 @@ interface TerminalContainerProps {
   terminalAddonRef: React.RefObject<FitAddon | null>;
 }
 
+/**
+ * Component that wraps the xterm.js terminal instance.
+ *
+ * Provides a top drag handle to allow resizing the terminal height relative
+ * to the code editor.
+ */
 export default function TerminalContainer({
   terminalDivRef,
   row,

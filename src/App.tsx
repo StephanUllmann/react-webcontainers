@@ -28,6 +28,10 @@ const url =
 
 const isDev = import.meta.env.VITE_IS_DEV === 'true';
 
+/**
+ * Main application component that orchestrates the WebContainer, code editor,
+ * file tree, terminal, and preview pane iframe.
+ */
 function App() {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
   const terminalDivRef = useRef<HTMLDivElement>(null);

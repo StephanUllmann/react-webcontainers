@@ -10,6 +10,10 @@ interface SidebarProps {
   setIsDragging: (isDragging: boolean) => void;
 }
 
+/**
+ * Sidebar component containing the FileTree and a drag handle to resize the
+ * file tree pane.
+ */
 export default function Sidebar({
   monacoFiles,
   fileName,

@@ -3,6 +3,14 @@ import type { FileSystemTree } from '@webcontainer/api';
 import type { FitAddon } from '@xterm/addon-fit';
 import type { Terminal } from '@xterm/xterm';
 
+/**
+ * Starts an interactive jsh shell session within a WebContainer.
+ * Connects the given xterm Terminal object to the shell's input/output streams.
+ *
+ * @param terminal - xterm Terminal instance to attach to the shell
+ * @param webContainer - Active WebContainer instance
+ * @returns The shell process spawned by WebContainer
+ */
 export async function startShell(
   terminal: Terminal,
   webContainer: WebContainer
@@ -29,6 +37,20 @@ export async function startShell(
   return shProcess;
 }
 
+/**
+ * Initializes and mounts the WebContainer, opening the xterm terminal 
+ * and starting the jsh shell session within it. Mounts the initial file system tree.
+ *
+ * Returns a cleanup function to remove the window resize listener attached.
+ *
+ * @param terminalRef - Ref containing the xterm Terminal instance
+ * @param terminalAddonRef - Ref containing the xterm FitAddon
+ * @param terminalDivRef - Ref pointing to the DOM container of the terminal
+ * @param webContainer - Ref to hold the booted WebContainer instance
+ * @param files - Ref containing the initial FileSystemTree to mount
+ * @param iFrameRef - Ref to the preview iframe
+ * @returns A cleanup function removing the resize event listener, or null if dependencies are missing
+ */
 export async function initWebContainer(
   terminalRef: React.RefObject<Terminal | null>,
   terminalAddonRef: React.RefObject<FitAddon | null>,
@@ -78,6 +100,17 @@ export async function initWebContainer(
   };
 }
 
+/**
+ * Starts a file system watcher on the WebContainer instance.
+ * Triggers `dispatchUpdate` whenever files are changed or renamed, 
+ * except for specific ignored directories (node_modules, .git, etc.) 
+ * and the currently active/focused file in the editor to avoid looping.
+ *
+ * @param webcontainerInstance - Active WebContainer instance
+ * @param dispatchUpdate - Callback to update the React state with new file content
+ * @param getActiveFileName - A getter that returns the name of the currently active file in the editor
+ * @returns The fs watcher instance returned by WebContainer
+ */
 export function watchWebContainerFiles(
   webcontainerInstance: WebContainer,
   dispatchUpdate: (path: string, content: string | null) => void,
@@ -157,6 +190,14 @@ export function watchWebContainerFiles(
   return watcher;
 }
 
+/**
+ * Spawns an npm/pnpm install process within the given WebContainer 
+ * and pipes the output into the provided terminal.
+ *
+ * @param webcontainer - Active WebContainer instance
+ * @param terminal - Terminal instance to stream the install command output into
+ * @returns The exit code of the install process
+ */
 export async function installDependencies(
   webcontainer: WebContainer,
   terminal: Terminal
@@ -172,6 +213,15 @@ export async function installDependencies(
   return installProcess.exit;
 }
 
+/**
+ * Spawns a dev server (e.g., `pnpm run dev`) inside the WebContainer.
+ * Pipes its stdout to the terminal. When the 'server-ready' event fires,
+ * it updates the provided iframe src to display the running server preview.
+ *
+ * @param webcontainer - Active WebContainer instance
+ * @param terminal - Terminal instance to stream the dev server logs
+ * @param iFrame - The preview iframe DOM element to update on 'server-ready'
+ */
 export async function startDevServer(
   webcontainer: WebContainer,
   terminal: Terminal,
@@ -192,6 +242,13 @@ export async function startDevServer(
   });
 }
 
+/**
+ * Writes text content to a specific file inside the WebContainer virtual file system.
+ *
+ * @param webcontainerInstance - Active WebContainer instance
+ * @param filePath - Path to the file to write
+ * @param content - Text content to write into the file
+ */
 export async function writeToWebContainer(
   webcontainerInstance: WebContainer,
   filePath: string,

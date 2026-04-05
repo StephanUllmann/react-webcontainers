@@ -1,3 +1,7 @@
+/**
+ * Mock file system tree used as sample initial data when developing locally 
+ * or when the actual project fails to load.
+ */
 export const mockData = {
   '.gitignore': {
     file: {

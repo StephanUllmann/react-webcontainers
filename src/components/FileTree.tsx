@@ -5,6 +5,12 @@ type FileTree = {
   [key: string]: FileTree | null;
 };
 
+/**
+ * Component that renders a recursive file tree view.
+ * 
+ * Takes a flat dictionary of files from Monaco and computes a nested tree
+ * structure to display.
+ */
 function FileTreeComponent({
   files,
   activeFile,
