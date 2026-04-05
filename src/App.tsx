@@ -21,6 +21,7 @@ import type { MonacoFiles } from './types';
 import Sidebar from './components/Sidebar';
 import Preview from './components/Preview';
 import TerminalContainer from './components/TerminalContainer';
+import { handleEditorWillMount } from './services/editor';
 
 const url =
   new URL(window.location.href).searchParams.get('q') ??
@@ -115,16 +116,11 @@ function App() {
       iFrameRef
     );
 
-    if (cleanup) {
-      resizeCleanupRef.current = cleanup;
-    }
+    if (cleanup) resizeCleanupRef.current = cleanup;
 
-    // Use a ref to strictly grab the LATEST fileName inside the async watcher callback safely
-    const latestFileNameRef = { current: fileName };
-    setFileName((prev) => {
-      latestFileNameRef.current = prev;
-      return prev;
-    });
+    if ('src/App.jsx' in mFiles) setFileName('src/App.jsx');
+    else if ('src/App.tsx' in mFiles) setFileName('src/App.tsx');
+    else if ('src/index.ts' in mFiles) setFileName('src/index.ts');
 
     if (webContainer.current) {
       const fsWatcher = watchWebContainerFiles(
@@ -225,7 +221,7 @@ function App() {
         setIsDragging={setIsDragging}
       />
       {isFetchingProject ? (
-        <div className="flex h-full items-center justify-center bg-[#1e1e1e]">
+        <div className="flex h-full items-center justify-center bg-[#1e1e2e]">
           <div className="loader-wrapper">
             <div className="spinner"></div>
             <div className="loading-text text-white">Fetching Project</div>
@@ -234,7 +230,7 @@ function App() {
       ) : (
         <Editor
           className="h-full"
-          theme="vs-dark"
+          theme="catppuccin-mocha"
           path={activeFile?.name}
           loading={
             <div className="loader-wrapper">
@@ -244,6 +240,7 @@ function App() {
           }
           defaultLanguage={activeFile?.language}
           defaultValue={activeFile?.value}
+          beforeMount={handleEditorWillMount}
           onMount={handleEditorDidMount}
           onChange={handleEditorChange}
           options={{
