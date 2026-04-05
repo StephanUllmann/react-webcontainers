@@ -34,24 +34,34 @@ export async function initWebContainer(
   terminalAddonRef: React.RefObject<FitAddon | null>,
   terminalDivRef: React.RefObject<HTMLDivElement | null>,
   webContainer: React.RefObject<WebContainer | null>,
-  files: React.RefObject<any>,
+  files: React.RefObject<FileSystemTree | null>,
   iFrameRef: React.RefObject<HTMLIFrameElement | null>
 ) {
-  if (!terminalRef.current || !terminalAddonRef.current) return;
+  if (
+    !terminalRef.current ||
+    !terminalAddonRef.current ||
+    !terminalDivRef.current ||
+    !files.current ||
+    !iFrameRef.current
+  ) {
+    return null;
+  }
+
   terminalRef.current.loadAddon(terminalAddonRef.current);
-  terminalRef.current.open(terminalDivRef.current!);
+  terminalRef.current.open(terminalDivRef.current);
 
   webContainer.current = await WebContainer.boot();
-  await webContainer.current.mount(files.current as FileSystemTree);
+  await webContainer.current.mount(files.current);
 
-  iFrameRef.current!.src = 'setup.html';
+  iFrameRef.current.src = 'setup.html';
+  const currentIFrame = iFrameRef.current;
   webContainer.current.on('server-ready', async (_port, url) => {
-    iFrameRef.current!.src = url;
+    currentIFrame.src = url;
   });
 
   const shProcess = await startShell(terminalRef.current, webContainer.current);
 
-  window.addEventListener('resize', () => {
+  const resizeListener = () => {
     if (!terminalAddonRef.current || !terminalRef.current) return;
     terminalAddonRef.current.fit();
 
@@ -59,7 +69,88 @@ export async function initWebContainer(
       cols: terminalRef.current.cols,
       rows: terminalRef.current.rows / 2,
     });
-  });
+  };
+
+  window.addEventListener('resize', resizeListener);
+
+  return () => {
+    window.removeEventListener('resize', resizeListener);
+  };
+}
+
+export function watchWebContainerFiles(
+  webcontainerInstance: WebContainer,
+  dispatchUpdate: (path: string, content: string | null) => void
+) {
+  if (!webcontainerInstance) return null;
+
+  const watcher = webcontainerInstance.fs.watch(
+    '/',
+    { recursive: true },
+    async (event, filename) => {
+      if (!filename) return;
+
+      const filenameStr =
+        typeof filename === 'string'
+          ? filename
+          : new TextDecoder().decode(filename);
+      const relativePath = filenameStr.startsWith('/')
+        ? filenameStr.slice(1)
+        : filenameStr;
+      const absolutePath = filenameStr.startsWith('/')
+        ? filenameStr
+        : `/${filenameStr}`;
+
+      if (
+        relativePath.startsWith('node_modules/') ||
+        relativePath.startsWith('.next/') ||
+        relativePath.startsWith('dist/') ||
+        relativePath.startsWith('.git/') ||
+        relativePath === 'package-lock.json' ||
+        relativePath === 'yarn.lock' ||
+        relativePath === 'pnpm-lock.yaml'
+      ) {
+        return;
+      }
+
+      try {
+        if (event === 'rename') {
+          try {
+            // Try to read it; if it fails, it might be heavily deleted or missing
+            const contentRaw = await webcontainerInstance.fs.readFile(
+              absolutePath,
+              'utf-8'
+            );
+            const content =
+              typeof contentRaw === 'string'
+                ? contentRaw
+                : new TextDecoder().decode(contentRaw);
+            dispatchUpdate(relativePath, content);
+          } catch {
+            // File was likely deleted (or is a directory)
+            dispatchUpdate(relativePath, null);
+          }
+        } else if (event === 'change') {
+          const contentRaw = await webcontainerInstance.fs.readFile(
+            absolutePath,
+            'utf-8'
+          );
+          const content =
+            typeof contentRaw === 'string'
+              ? contentRaw
+              : new TextDecoder().decode(contentRaw);
+          dispatchUpdate(relativePath, content);
+        }
+      } catch (error) {
+        console.warn(
+          `Error reading file during watch event for ${filenameStr}:`,
+          error
+        );
+      }
+    }
+  );
+
+  return watcher;
 }
 
 export async function installDependencies(

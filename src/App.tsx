@@ -1,19 +1,22 @@
-import { use, useEffect, useRef, useState } from 'react';
-import { WebContainer, type FileSystemTree } from '@webcontainer/api';
+import { useEffect, useRef, useState } from 'react';
+import { WebContainer } from '@webcontainer/api';
+import type { FileSystemTree } from '@webcontainer/api';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 
-import Editor, { type Monaco } from '@monaco-editor/react';
+import Editor from '@monaco-editor/react';
+import type { Monaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { mockData } from './services/mock';
 import {
   initWebContainer,
   installDependencies,
   startDevServer,
+  watchWebContainerFiles,
   writeToWebContainer,
 } from './services/webContainer';
-import { convertToMonacoFiles } from './services/monacoConverter';
+import { convertToMonacoFiles, fsToMonaco } from './services/monacoConverter';
 import type { MonacoFiles } from './types';
 import Sidebar from './components/Sidebar';
 import Preview from './components/Preview';
@@ -25,30 +28,48 @@ const url =
 
 const isDev = import.meta.env.VITE_IS_DEV === 'true';
 
-const data = isDev
-  ? null
-  : fetch(`https://gh-proxy.stephan-ullmann.workers.dev/files/${url}`).then(
-      (res) => {
-        console.log('fetching...');
-        return res.json();
-      }
-    );
-
 function App() {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
   const terminalDivRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const terminalAddonRef = useRef<FitAddon | null>(null);
   const webContainer = useRef<WebContainer | null>(null);
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
 
-  const files = useRef<FileSystemTree>(null);
+  const files = useRef<FileSystemTree | null>(null);
+  const watchFsCleanupRef = useRef<{ close: () => void } | null>(null);
   const [monacoFiles, setMonacoFiles] = useState<MonacoFiles>({});
   const [fileName, setFileName] = useState('');
 
+  const [isFetchingProject, setIsFetchingProject] = useState(!isDev);
+  const [projectData, setProjectData] = useState<FileSystemTree | null>(null);
+
   const activeFile = monacoFiles[fileName];
 
-  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (isDev) return;
+
+    let isMounted = true;
+    fetch(`https://gh-proxy.stephan-ullmann.workers.dev/files/${url}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (isMounted) {
+          setProjectData(json);
+          setIsFetchingProject(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch project:', err);
+        if (isMounted) setIsFetchingProject(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Layout State
   const [col1, setCol1] = useState(250); // File Tree width
@@ -61,20 +82,22 @@ function App() {
     _monaco: Monaco
   ) {
     if (webContainer.current) return;
-    files.current = isDev ? mockData : await data;
-
-    const mFiles = convertToMonacoFiles(files.current!);
+    files.current = isDev ? mockData : projectData;
+    if (!files.current) return;
+    const mFiles = convertToMonacoFiles(files.current);
     setMonacoFiles(mFiles);
-
     editorRef.current = editor;
+
     if (
       !iFrameRef.current ||
       !terminalDivRef.current ||
-      !editorRef.current ||
-      !terminalRef
+      !terminalRef.current ||
+      !terminalAddonRef.current ||
+      !webContainer
     )
       return;
-    await initWebContainer(
+
+    const cleanup = await initWebContainer(
       terminalRef,
       terminalAddonRef,
       terminalDivRef,
@@ -82,18 +105,41 @@ function App() {
       files,
       iFrameRef
     );
-    // setFileName('src/App.jsx');
-    terminalAddonRef.current?.fit();
+
+    if (cleanup) {
+      resizeCleanupRef.current = cleanup;
+    }
+
+    if (webContainer.current) {
+      const fsWatcher = watchWebContainerFiles(
+        webContainer.current,
+        (path, content) => {
+          setMonacoFiles((prev) => fsToMonaco(prev, path, content));
+        }
+      );
+      if (fsWatcher) {
+        watchFsCleanupRef.current = fsWatcher;
+      }
+    }
+
+    terminalAddonRef.current.fit();
     const isNode = 'package.json' in mFiles;
-    if (isNode && !isDev) {
+
+    if (
+      isNode &&
+      !isDev &&
+      webContainer.current &&
+      terminalRef.current &&
+      iFrameRef.current
+    ) {
       const installCode = await installDependencies(
-        webContainer.current!,
-        terminalRef.current!
+        webContainer.current,
+        terminalRef.current
       );
       if (installCode !== 0) return;
       startDevServer(
-        webContainer.current!,
-        terminalRef.current!,
+        webContainer.current,
+        terminalRef.current,
         iFrameRef.current
       );
     }
@@ -134,6 +180,12 @@ function App() {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
+      if (resizeCleanupRef.current) {
+        resizeCleanupRef.current();
+      }
+      if (watchFsCleanupRef.current) {
+        watchFsCleanupRef.current.close();
+      }
       webContainer.current?.teardown();
     };
   }, []);
@@ -155,28 +207,37 @@ function App() {
         setCol2={setCol2}
         setIsDragging={setIsDragging}
       />
-      <Editor
-        className="h-full"
-        theme="vs-dark"
-        path={activeFile?.name}
-        loading={
+      {isFetchingProject ? (
+        <div className="flex h-full items-center justify-center bg-[#1e1e1e]">
           <div className="loader-wrapper">
             <div className="spinner"></div>
-            <div className="loading-text">Initializing Editor</div>
+            <div className="loading-text text-white">Fetching Project</div>
           </div>
-        }
-        defaultLanguage={activeFile?.language}
-        defaultValue={activeFile?.value}
-        onMount={handleEditorDidMount}
-        onChange={handleEditorChange}
-        options={{
-          automaticLayout: true,
-          minimap: { enabled: false },
-          fontSize: 14,
-          wordWrap: 'on',
-          scrollBeyondLastLine: false,
-        }}
-      />
+        </div>
+      ) : (
+        <Editor
+          className="h-full"
+          theme="vs-dark"
+          path={activeFile?.name}
+          loading={
+            <div className="loader-wrapper">
+              <div className="spinner"></div>
+              <div className="loading-text">Initializing Editor</div>
+            </div>
+          }
+          defaultLanguage={activeFile?.language}
+          defaultValue={activeFile?.value}
+          onMount={handleEditorDidMount}
+          onChange={handleEditorChange}
+          options={{
+            automaticLayout: true,
+            minimap: { enabled: false },
+            fontSize: 14,
+            wordWrap: 'on',
+            scrollBeyondLastLine: false,
+          }}
+        />
+      )}
       <Preview
         iFrameRef={iFrameRef}
         isDragging={isDragging}

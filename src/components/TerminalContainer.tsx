@@ -6,7 +6,7 @@ interface TerminalContainerProps {
   row: number;
   setRow: React.Dispatch<React.SetStateAction<number>>;
   setIsDragging: (isDragging: boolean) => void;
-  terminalAddonRef: React.RefObject<FitAddon>;
+  terminalAddonRef: React.RefObject<FitAddon | null>;
 }
 
 export default function TerminalContainer({
@@ -21,14 +21,13 @@ export default function TerminalContainer({
     setIsDragging(true);
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      const newRow = moveEvent.clientY;
-      setRow(newRow);
+      setRow(moveEvent.clientY);
     };
 
     const handleMouseUp = () => {
       setIsDragging(false);
 
-      terminalAddonRef.current.fit();
+      terminalAddonRef.current?.fit();
 
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);

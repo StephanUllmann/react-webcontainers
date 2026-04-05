@@ -1,32 +1,45 @@
+import { memo, useMemo } from 'react';
 import type { MonacoFiles } from '../types';
 
 type FileTree = {
   [key: string]: FileTree | null;
 };
 
-const renderFileTree = (
-  files: MonacoFiles,
-  activeFile: string,
-  setActiveFile: React.Dispatch<React.SetStateAction<string>>
-) => {
-  const fileTree: FileTree = {};
+function FileTreeComponent({
+  files,
+  activeFile,
+  setActiveFile,
+}: {
+  files: MonacoFiles;
+  activeFile: string;
+  setActiveFile: React.Dispatch<React.SetStateAction<string>>;
+}) {
+  // Only re-calculate the tree structue if the keys change (file added/deleted)
+  // Ignoring the values (keystrokes) prevents constantly dumping details states
+  const fileKeys = Object.keys(files).sort().join(',');
 
-  Object.keys(files).forEach((filePath) => {
-    const parts = filePath.split('/');
-    let current = fileTree;
+  const computedTree = useMemo(() => {
+    const fileTree: FileTree = {};
+    console.log('COMPUTED TREE');
+    Object.keys(files).forEach((filePath) => {
+      const parts = filePath.split('/');
+      let current = fileTree;
 
-    parts.forEach((part, index) => {
-      if (!current[part]) {
-        current[part] = index === parts.length - 1 ? null : {};
-      }
-      current = current[part] as FileTree;
+      parts.forEach((part, index) => {
+        if (!current[part]) {
+          current[part] = index === parts.length - 1 ? null : {};
+        }
+        current = current[part] as FileTree;
+      });
     });
-  });
+    return fileTree;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fileKeys]);
 
   const renderTree = (tree: FileTree, path = '') => {
     return Object.entries(tree).map(([key, value]) => {
       const fullPath = path ? `${path}/${key}` : key;
-
+      console.log('RENDERING TREE');
       if (value === null) {
         return (
           <li key={fullPath}>
@@ -62,20 +75,12 @@ const renderFileTree = (
   };
 
   return (
-    <ul className="flex grow flex-col overflow-y-auto py-2">
-      {renderTree(fileTree)}
-    </ul>
+    <div>
+      <ul className="flex grow flex-col overflow-y-auto py-2">
+        {renderTree(computedTree)}
+      </ul>
+    </div>
   );
-};
-
-export default function FileTree({
-  files,
-  activeFile,
-  setActiveFile,
-}: {
-  files: MonacoFiles;
-  activeFile: string;
-  setActiveFile: React.Dispatch<React.SetStateAction<string>>;
-}) {
-  return <div>{renderFileTree(files, activeFile, setActiveFile)}</div>;
 }
+
+export default memo(FileTreeComponent);

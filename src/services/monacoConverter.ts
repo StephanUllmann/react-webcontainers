@@ -34,7 +34,10 @@ export function convertToMonacoFiles(tree: FileSystemTree, basePath = '') {
       monacoFiles[fullPath] = {
         name: name,
         language: getMonacoLanguage(name),
-        value: typeof contents === 'string' ? contents : new TextDecoder().decode(contents),
+        value:
+          typeof contents === 'string'
+            ? contents
+            : new TextDecoder().decode(contents),
       };
     } else if ('directory' in node) {
       monacoFiles = {
@@ -45,4 +48,40 @@ export function convertToMonacoFiles(tree: FileSystemTree, basePath = '') {
   }
 
   return monacoFiles;
+}
+
+export function fsToMonaco(
+  prev: MonacoFiles,
+  path: string,
+  content: string | null
+) {
+  // If content is identical to what we have, skip update to prevent infinite loops with monaco change events
+  if (content !== null && prev[path] && prev[path].value === content) {
+    return prev;
+  }
+
+  if (content === null) {
+    // File deleted
+    const updated = { ...prev };
+    delete updated[path];
+    return updated;
+  }
+
+  // File added or changed
+  const ext = path.split('.').pop()?.toLowerCase() || '';
+  const language =
+    ext === 'jsx' || ext === 'js'
+      ? 'javascript'
+      : ext === 'tsx' || ext === 'ts'
+        ? 'typescript'
+        : ext;
+
+  return {
+    ...prev,
+    [path]: {
+      name: path,
+      language: prev[path]?.language || language,
+      value: content,
+    },
+  };
 }
