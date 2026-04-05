@@ -82,7 +82,7 @@ function App() {
       files,
       iFrameRef
     );
-    setFileName('src/App.jsx');
+    // setFileName('src/App.jsx');
     terminalAddonRef.current?.fit();
     const isNode = 'package.json' in mFiles;
     if (isNode && !isDev) {
@@ -159,6 +159,12 @@ function App() {
         className="h-full"
         theme="vs-dark"
         path={activeFile?.name}
+        loading={
+          <div className="loader-wrapper">
+            <div className="spinner"></div>
+            <div className="loading-text">Initializing Editor</div>
+          </div>
+        }
         defaultLanguage={activeFile?.language}
         defaultValue={activeFile?.value}
         onMount={handleEditorDidMount}

@@ -8,7 +8,6 @@ const renderFileTree = (
   files: MonacoFiles,
   activeFile: string,
   setActiveFile: React.Dispatch<React.SetStateAction<string>>
-  // pathname: string,
 ) => {
   const fileTree: FileTree = {};
 
@@ -33,13 +32,12 @@ const renderFileTree = (
           <li key={fullPath}>
             <button
               onClick={() => {
-                // router.push(`${pathname}?file=${fullPath}`);
                 setActiveFile(fullPath);
               }}
-              className={`w-full cursor-pointer px-4 py-2 text-left text-sm ${
+              className={`w-full cursor-pointer px-4 py-1 text-left text-sm transition-colors duration-150 select-none ${
                 activeFile === fullPath
-                  ? 'bg-primary text-white'
-                  : 'hover:bg-gray-200 hover:text-gray-900'
+                  ? 'bg-slate-700/60 text-blue-400'
+                  : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
               }`}
             >
               {key}
@@ -50,14 +48,24 @@ const renderFileTree = (
 
       return (
         <li key={fullPath}>
-          <div className="px-4 py-2 font-bold">{key}</div>
-          <ul className="pl-4">{renderTree(value, fullPath)}</ul>
+          <details open className="group">
+            <summary className="cursor-pointer px-4 py-1 text-start text-sm font-medium text-slate-300 transition-colors select-none hover:text-slate-100">
+              {key}
+            </summary>
+            <ul className="ml-3 flex flex-col border-l border-slate-700/50 pl-1">
+              {renderTree(value, fullPath)}
+            </ul>
+          </details>
         </li>
       );
     });
   };
 
-  return <ul className="grow overflow-y-auto">{renderTree(fileTree)}</ul>;
+  return (
+    <ul className="flex grow flex-col overflow-y-auto py-2">
+      {renderTree(fileTree)}
+    </ul>
+  );
 };
 
 export default function FileTree({

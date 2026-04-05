@@ -8,13 +8,13 @@ interface PreviewProps {
   setCol2: React.Dispatch<React.SetStateAction<number>>;
 }
 
-const Preview: React.FC<PreviewProps> = ({
+export default function Preview({
   iFrameRef,
   isDragging,
   setIsDragging,
   col1,
   setCol2,
-}) => {
+}: PreviewProps) {
   const handleMouseDownCol2 = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -39,7 +39,7 @@ const Preview: React.FC<PreviewProps> = ({
   return (
     <div className="relative flex h-full w-full">
       <div
-        className="absolute top-0 bottom-0 left-0 z-10 h-full w-1.5 cursor-col-resize bg-slate-800 transition-all hover:bg-slate-700 active:w-2 active:bg-slate-700"
+        className="absolute top-0 bottom-0 left-0 z-10 h-full w-1 cursor-col-resize bg-slate-800 transition-all hover:bg-slate-700 active:bg-slate-700"
         onMouseDown={handleMouseDownCol2}
       />
       <iframe
@@ -50,6 +50,4 @@ const Preview: React.FC<PreviewProps> = ({
       />
     </div>
   );
-};
-
-export default Preview;
+}

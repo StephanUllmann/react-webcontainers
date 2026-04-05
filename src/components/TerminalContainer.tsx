@@ -9,13 +9,13 @@ interface TerminalContainerProps {
   terminalAddonRef: React.RefObject<FitAddon>;
 }
 
-const TerminalContainer: React.FC<TerminalContainerProps> = ({
+export default function TerminalContainer({
   terminalDivRef,
   row,
   setRow,
   setIsDragging,
   terminalAddonRef,
-}) => {
+}: TerminalContainerProps) {
   const handleMouseDownRow = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -54,6 +54,4 @@ const TerminalContainer: React.FC<TerminalContainerProps> = ({
       ></div>
     </div>
   );
-};
-
-export default TerminalContainer;
+}

@@ -10,14 +10,14 @@ interface SidebarProps {
   setIsDragging: (isDragging: boolean) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({
+export default function Sidebar({
   monacoFiles,
   fileName,
   setFileName,
   setCol1,
   setCol2,
   setIsDragging,
-}) => {
+}: SidebarProps) {
   const handleMouseDownCol1 = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -51,11 +51,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         <h2>Loading...</h2>
       )}
       <div
-        className="absolute top-0 right-0 bottom-0 z-10 h-full w-1 cursor-col-resize bg-slate-800 transition-all hover:w-2 hover:bg-slate-700 active:w-2 active:bg-slate-700"
+        className="absolute top-0 right-0 bottom-0 z-10 h-full w-1 cursor-col-resize bg-slate-800 transition-all hover:bg-slate-700 active:bg-slate-700"
         onMouseDown={handleMouseDownCol1}
       />
     </aside>
   );
-};
-
-export default Sidebar;
+}
