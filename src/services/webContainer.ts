@@ -80,7 +80,8 @@ export async function initWebContainer(
 
 export function watchWebContainerFiles(
   webcontainerInstance: WebContainer,
-  dispatchUpdate: (path: string, content: string | null) => void
+  dispatchUpdate: (path: string, content: string | null) => void,
+  getActiveFileName: () => string
 ) {
   if (!webcontainerInstance) return null;
 
@@ -89,7 +90,6 @@ export function watchWebContainerFiles(
     { recursive: true },
     async (event, filename) => {
       if (!filename) return;
-
       const filenameStr =
         typeof filename === 'string'
           ? filename
@@ -113,10 +113,15 @@ export function watchWebContainerFiles(
         return;
       }
 
+      if (event === 'change' && relativePath === getActiveFileName()) {
+        return;
+      }
+
+      console.log('RUNNING WATCHER', filename);
+
       try {
         if (event === 'rename') {
           try {
-            // Try to read it; if it fails, it might be heavily deleted or missing
             const contentRaw = await webcontainerInstance.fs.readFile(
               absolutePath,
               'utf-8'
@@ -127,7 +132,6 @@ export function watchWebContainerFiles(
                 : new TextDecoder().decode(contentRaw);
             dispatchUpdate(relativePath, content);
           } catch {
-            // File was likely deleted (or is a directory)
             dispatchUpdate(relativePath, null);
           }
         } else if (event === 'change') {
@@ -198,7 +202,6 @@ export async function writeToWebContainer(
     return;
   }
 
-  // Ensure the path is absolute for the WebContainer FS
   const absolutePath = filePath.startsWith('/') ? filePath : `/${filePath}`;
 
   try {

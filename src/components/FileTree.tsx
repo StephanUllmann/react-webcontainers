@@ -14,13 +14,10 @@ function FileTreeComponent({
   activeFile: string;
   setActiveFile: React.Dispatch<React.SetStateAction<string>>;
 }) {
-  // Only re-calculate the tree structue if the keys change (file added/deleted)
-  // Ignoring the values (keystrokes) prevents constantly dumping details states
   const fileKeys = Object.keys(files).sort().join(',');
 
   const computedTree = useMemo(() => {
     const fileTree: FileTree = {};
-    console.log('COMPUTED TREE');
     Object.keys(files).forEach((filePath) => {
       const parts = filePath.split('/');
       let current = fileTree;
@@ -39,7 +36,6 @@ function FileTreeComponent({
   const renderTree = (tree: FileTree, path = '') => {
     return Object.entries(tree).map(([key, value]) => {
       const fullPath = path ? `${path}/${key}` : key;
-      console.log('RENDERING TREE');
       if (value === null) {
         return (
           <li key={fullPath}>

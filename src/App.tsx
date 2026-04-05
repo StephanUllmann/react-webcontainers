@@ -49,6 +49,11 @@ function App() {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const activeFileNameRef = useRef(fileName);
+  useEffect(() => {
+    activeFileNameRef.current = fileName;
+  }, [fileName]);
+
   useEffect(() => {
     if (isDev) return;
 
@@ -110,12 +115,20 @@ function App() {
       resizeCleanupRef.current = cleanup;
     }
 
+    // Use a ref to strictly grab the LATEST fileName inside the async watcher callback safely
+    const latestFileNameRef = { current: fileName };
+    setFileName((prev) => {
+      latestFileNameRef.current = prev;
+      return prev;
+    });
+
     if (webContainer.current) {
       const fsWatcher = watchWebContainerFiles(
         webContainer.current,
         (path, content) => {
           setMonacoFiles((prev) => fsToMonaco(prev, path, content));
-        }
+        },
+        () => activeFileNameRef.current
       );
       if (fsWatcher) {
         watchFsCleanupRef.current = fsWatcher;
