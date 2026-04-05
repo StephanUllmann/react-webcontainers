@@ -44,7 +44,7 @@ export default function TerminalContainer({
   };
 
   return (
-    <div className="relative col-span-2 col-start-2 bg-black text-start">
+    <div className="relative col-span-2 col-start-2 bg-(--bg-primary) text-start">
       <div
         className="absolute top-0 right-0 left-0 z-10 h-1 w-full cursor-row-resize bg-slate-800 transition-all hover:bg-slate-700 active:bg-slate-700"
         onMouseDown={handleMouseDownRow}
@@ -52,7 +52,7 @@ export default function TerminalContainer({
       <div
         ref={terminalDivRef}
         id="terminal"
-        className="pt-1 text-start"
+        className="p-2 pt-3 text-start"
         style={{
           height: `${window.innerHeight - row}px`,
         }}

@@ -22,6 +22,7 @@ import Sidebar from './components/Sidebar';
 import Preview from './components/Preview';
 import TerminalContainer from './components/TerminalContainer';
 import { handleEditorWillMount } from './services/editor';
+import { terminalOptions } from './services/terminal';
 
 const url =
   new URL(window.location.href).searchParams.get('q') ??
@@ -184,9 +185,7 @@ function App() {
   }
 
   useEffect(() => {
-    terminalRef.current = new Terminal({
-      convertEol: true,
-    });
+    terminalRef.current = new Terminal(terminalOptions);
     terminalAddonRef.current = new FitAddon();
 
     return () => {
@@ -205,12 +204,15 @@ function App() {
 
   return (
     <div
-      className={`grid min-h-screen`}
-      style={{
-        gridTemplateColumns: `${col1}px ${col2 - col1}px 1fr`,
-        gridTemplateRows: `${row}px 1fr`,
-        cursor: isDragging ? 'col-resize' : 'auto',
-      }}
+      className={`grid min-h-screen bg-(--bg-primary)`}
+      style={
+        {
+          gridTemplateColumns: `${col1}px ${col2 - col1}px 1fr`,
+          gridTemplateRows: `${row}px 1fr`,
+          cursor: isDragging ? 'col-resize' : 'auto',
+          '--bg-primary': '#1e1e2e',
+        } as React.CSSProperties
+      }
     >
       <Sidebar
         monacoFiles={monacoFiles}
