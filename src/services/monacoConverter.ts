@@ -29,13 +29,14 @@ export function convertToMonacoFiles(tree: FileSystemTree, basePath = '') {
   for (const [name, node] of Object.entries(tree)) {
     const fullPath = basePath ? `${basePath}/${name}` : name;
 
-    if (node.file) {
+    if ('file' in node && 'contents' in node.file) {
+      const contents = node.file.contents;
       monacoFiles[fullPath] = {
         name: name,
         language: getMonacoLanguage(name),
-        value: node.file.contents,
+        value: typeof contents === 'string' ? contents : new TextDecoder().decode(contents),
       };
-    } else if (node.directory) {
+    } else if ('directory' in node) {
       monacoFiles = {
         ...monacoFiles,
         ...convertToMonacoFiles(node.directory, fullPath),

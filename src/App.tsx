@@ -23,7 +23,7 @@ const url =
   new URL(window.location.href).searchParams.get('q') ??
   'SDG-027/04_React_Intro/main/04-react-state-korrekturen/002-light-bulb';
 
-const isDev = true;
+const isDev = import.meta.env.VITE_IS_DEV;
 
 function App() {
   const iFrameRef = useRef<HTMLIFrameElement>(null);
@@ -49,7 +49,7 @@ function App() {
 
   // Layout State
   const [col1, setCol1] = useState(250); // File Tree width
-  const [col2, setCol2] = useState(1000); // Editor + File Tree width
+  const [col2, setCol2] = useState(() => (window.innerWidth + 250) / 2); // Editor + File Tree width
   const [row, setRow] = useState(() => window.innerHeight * 0.75); // Editor + File Tree height
   const [isDragging, setIsDragging] = useState(false);
 

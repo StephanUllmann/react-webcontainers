@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Environment Ready</title>
+    <style>
+      :root {
+        --bg-center: #1e1e28;
+        --bg-surface: #252531;
+        --text-color: #8b8b9e;
+        --text-bright: #e2e2e9;
+        --accent-color: #646cff;
+        --success-color: #10b981;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--bg-center);
+
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          Oxygen,
+          Ubuntu,
+          Cantarell,
+          'Open Sans',
+          'Helvetica Neue',
+          sans-serif;
+        overflow: hidden;
+        user-select: none;
+      }
+
+      .instructions-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        background-color: transparent;
+        max-width: 400px;
+        width: 90%;
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      .status-badge {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: var(--accent-color);
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .status-badge::before {
+        content: '';
+        display: block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--accent-color);
+        box-shadow: 0 0 8px var(--accent-color);
+      }
+
+      h1 {
+        margin: 0 0 12px 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--text-bright);
+        letter-spacing: -0.5px;
+      }
+
+      p {
+        margin: 0 0 24px 0;
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--text-color);
+      }
+
+      .code-container {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .code-block {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: var(--bg-surface);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 10px 12px 10px 16px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-left: 3px solid var(--accent-color);
+        transition: border-color 0.2s ease;
+      }
+
+      .code-content {
+        display: flex;
+        align-items: center;
+      }
+
+      .prompt {
+        color: var(--text-color);
+        margin-right: 12px;
+        user-select: none;
+      }
+
+      code {
+        font-family:
+          'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        font-size: 14px;
+        color: var(--text-bright);
+        user-select: all;
+      }
+
+      .copy-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-color);
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+
+      .copy-btn:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+        color: var(--text-bright);
+      }
+
+      .copy-btn svg {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* State classes applied via JS */
+      .copy-btn.copied {
+        color: var(--success-color);
+      }
+
+      .copy-btn .icon-check {
+        display: none;
+      }
+
+      .copy-btn.copied .icon-copy {
+        display: none;
+      }
+
+      .copy-btn.copied .icon-check {
+        display: block;
+      }
+
+      /* Animations */
+      @keyframes fadeInUp {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="instructions-wrapper">
+      <div class="status-badge">Project is Ready</div>
+      <h1>Next Steps</h1>
+      <p>
+        The Project is loaded. Run the following command here in the Terminal
+        below:
+      </p>
+
+      <div class="code-container">
+        <div class="code-block">
+          <div class="code-content">
+            <span class="prompt">$</span>
+            <code>pnpm install</code>
+          </div>
+          <button class="copy-btn" aria-label="Copy command">
+            <svg class="icon-copy" viewBox="0 0 24 24">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path
+                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+              ></path>
+            </svg>
+            <svg class="icon-check" viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </button>
+        </div>
+
+        <div class="code-block">
+          <div class="code-content">
+            <span class="prompt">$</span>
+            <code>pnpm run dev</code>
+          </div>
+          <button class="copy-btn" aria-label="Copy command">
+            <svg class="icon-copy" viewBox="0 0 24 24">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path
+                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+              ></path>
+            </svg>
+            <svg class="icon-check" viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.querySelectorAll('.copy-btn').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const codeElement = button
+            .closest('.code-block')
+            .querySelector('code');
+          const textToCopy = codeElement.innerText;
+
+          try {
+            await navigator.clipboard.writeText(textToCopy);
+
+            button.classList.add('copied');
+
+            setTimeout(() => {
+              button.classList.remove('copied');
+            }, 1500);
+          } catch {}
+        });
+      });
+    </script>
+  </body>
+</html>

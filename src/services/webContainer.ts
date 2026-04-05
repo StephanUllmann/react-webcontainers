@@ -43,7 +43,8 @@ export async function initWebContainer(
   webContainer.current = await WebContainer.boot();
   await webContainer.current.mount(files.current as FileSystemTree);
 
-  webContainer.current.on('server-ready', async (port, url) => {
+  iFrameRef.current!.src = 'setup.html';
+  webContainer.current.on('server-ready', async (_port, url) => {
     iFrameRef.current!.src = url;
   });
 
@@ -89,7 +90,7 @@ export async function startDevServer(
     })
   );
 
-  webcontainer.on('server-ready', (port, url) => {
+  webcontainer.on('server-ready', (_port, url) => {
     iFrame.src = url;
   });
 }
