@@ -149,7 +149,8 @@ function App() {
     ) {
       const installCode = await installDependencies(
         webContainer.current,
-        terminalRef.current
+        terminalRef.current,
+        iFrameRef.current
       );
       if (installCode !== 0) return;
       startDevServer(webContainer.current, terminalRef.current);

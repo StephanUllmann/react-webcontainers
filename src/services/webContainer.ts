@@ -200,9 +200,11 @@ export function watchWebContainerFiles(
  */
 export async function installDependencies(
   webcontainer: WebContainer,
-  terminal: Terminal
+  terminal: Terminal,
+  iFrameRef: HTMLIFrameElement
 ) {
   const installProcess = await webcontainer.spawn('npm', ['install']);
+  iFrameRef.src = 'installing.html';
   installProcess.output.pipeTo(
     new WritableStream({
       write(data) {
