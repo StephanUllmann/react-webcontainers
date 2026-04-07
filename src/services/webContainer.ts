@@ -38,7 +38,7 @@ export async function startShell(
 }
 
 /**
- * Initializes and mounts the WebContainer, opening the xterm terminal 
+ * Initializes and mounts the WebContainer, opening the xterm terminal
  * and starting the jsh shell session within it. Mounts the initial file system tree.
  *
  * Returns a cleanup function to remove the window resize listener attached.
@@ -102,8 +102,8 @@ export async function initWebContainer(
 
 /**
  * Starts a file system watcher on the WebContainer instance.
- * Triggers `dispatchUpdate` whenever files are changed or renamed, 
- * except for specific ignored directories (node_modules, .git, etc.) 
+ * Triggers `dispatchUpdate` whenever files are changed or renamed,
+ * except for specific ignored directories (node_modules, .git, etc.)
  * and the currently active/focused file in the editor to avoid looping.
  *
  * @param webcontainerInstance - Active WebContainer instance
@@ -191,7 +191,7 @@ export function watchWebContainerFiles(
 }
 
 /**
- * Spawns an npm/pnpm install process within the given WebContainer 
+ * Spawns an npm/pnpm install process within the given WebContainer
  * and pipes the output into the provided terminal.
  *
  * @param webcontainer - Active WebContainer instance
@@ -202,7 +202,7 @@ export async function installDependencies(
   webcontainer: WebContainer,
   terminal: Terminal
 ) {
-  const installProcess = await webcontainer.spawn('pnpm', ['install']);
+  const installProcess = await webcontainer.spawn('npm', ['install']);
   installProcess.output.pipeTo(
     new WritableStream({
       write(data) {
@@ -224,10 +224,9 @@ export async function installDependencies(
  */
 export async function startDevServer(
   webcontainer: WebContainer,
-  terminal: Terminal,
-  iFrame: HTMLIFrameElement
+  terminal: Terminal
 ) {
-  const serverProcess = await webcontainer.spawn('pnpm', ['run', 'dev']);
+  const serverProcess = await webcontainer.spawn('npm', ['run', 'dev']);
 
   serverProcess.output.pipeTo(
     new WritableStream({
@@ -236,10 +235,6 @@ export async function startDevServer(
       },
     })
   );
-
-  webcontainer.on('server-ready', (_port, url) => {
-    iFrame.src = url;
-  });
 }
 
 /**

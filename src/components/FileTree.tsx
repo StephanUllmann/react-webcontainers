@@ -7,7 +7,7 @@ type FileTree = {
 
 /**
  * Component that renders a recursive file tree view.
- * 
+ *
  * Takes a flat dictionary of files from Monaco and computes a nested tree
  * structure to display.
  */
@@ -63,7 +63,7 @@ function FileTreeComponent({
 
       return (
         <li key={fullPath}>
-          <details open className="group">
+          <details className="group">
             <summary className="cursor-pointer px-4 py-1 text-start text-sm font-medium text-slate-300 transition-colors select-none hover:text-slate-100">
               {key}
             </summary>
@@ -77,7 +77,7 @@ function FileTreeComponent({
   };
 
   return (
-    <div>
+    <div className="scrollbar max-h-screen overflow-y-auto">
       <ul className="flex grow flex-col overflow-y-auto py-2">
         {renderTree(computedTree)}
       </ul>

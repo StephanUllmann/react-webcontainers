@@ -20,7 +20,8 @@ import {
   convertToMonacoFiles,
   fsToMonaco,
   getMonacoLanguage,
-} from './services/monacoConverter';
+  injectTypesFromWebContainer,
+} from './services/monaco';
 import type { MonacoFiles } from './types';
 import Sidebar from './components/Sidebar';
 import Preview from './components/Preview';
@@ -155,12 +156,13 @@ function App() {
         terminalRef.current
       );
       if (installCode !== 0) return;
-      startDevServer(
-        webContainer.current,
-        terminalRef.current,
-        iFrameRef.current
-      );
+      startDevServer(webContainer.current, terminalRef.current);
     }
+    webContainer.current!.on('server-ready', (_port, url) => {
+      injectTypesFromWebContainer(webContainer.current!, _monaco);
+      sessionStorage.setItem('container_url', url);
+      iFrameRef.current!.src = url;
+    });
   }
 
   async function handleEditorChange(
@@ -192,6 +194,8 @@ function App() {
     terminalRef.current = new Terminal(terminalOptions);
     terminalAddonRef.current = new FitAddon();
 
+    const container = webContainer.current;
+
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
@@ -202,14 +206,13 @@ function App() {
       if (watchFsCleanupRef.current) {
         watchFsCleanupRef.current.close();
       }
-      webContainer.current?.teardown();
+      container?.teardown();
     };
   }, []);
 
-  console.log(activeFile);
   return (
     <div
-      className={`grid min-h-screen bg-(--bg-primary)`}
+      className={`grid h-screen bg-(--bg-primary)`}
       style={
         {
           gridTemplateColumns: `${col1}px ${col2 - col1}px 1fr`,
@@ -226,6 +229,8 @@ function App() {
         setCol1={setCol1}
         setCol2={setCol2}
         setIsDragging={setIsDragging}
+        webContainer={webContainer}
+        iFrameRef={iFrameRef}
       />
       {isFetchingProject ? (
         <div className="flex h-full items-center justify-center bg-[#1e1e2e]">

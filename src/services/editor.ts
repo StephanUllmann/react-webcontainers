@@ -27,6 +27,8 @@ export function handleEditorWillMount(monaco: Monaco) {
   const compilerOptions = {
     target: monaco.languages.typescript.ScriptTarget.ESNext,
     allowNonTsExtensions: true,
+    allowImportingTsExtensions: true,
+    allowSyntheticDefaultImports: true,
     moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
     allowJs: true,
     jsx: monaco.languages.typescript.JsxEmit.ReactJSX,
@@ -34,6 +36,11 @@ export function handleEditorWillMount(monaco: Monaco) {
   monaco.languages.typescript.typescriptDefaults.setCompilerOptions(
     compilerOptions
   );
+  monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+    noSemanticValidation: false,
+    noSyntaxValidation: false,
+    diagnosticCodesToIgnore: [2307],
+  });
   monaco.languages.typescript.javascriptDefaults.setCompilerOptions(
     compilerOptions
   );
