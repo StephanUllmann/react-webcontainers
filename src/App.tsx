@@ -5,7 +5,6 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 
-import Editor from '@monaco-editor/react';
 import type { Monaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { mockData } from './services/mock';
@@ -14,19 +13,17 @@ import {
   installDependencies,
   startDevServer,
   watchWebContainerFiles,
-  writeToWebContainer,
 } from './services/webContainer';
 import {
   convertToMonacoFiles,
   fsToMonaco,
-  getMonacoLanguage,
   injectTypesFromWebContainer,
 } from './services/monaco';
 import type { MonacoFiles } from './types';
 import Sidebar from './components/Sidebar';
 import Preview from './components/Preview';
 import TerminalContainer from './components/TerminalContainer';
-import { handleEditorWillMount } from './services/editor';
+import CodeEditor from './components/CodeEditor';
 import { terminalOptions } from './services/terminal';
 
 const url =
@@ -58,7 +55,6 @@ function App() {
   const activeFile = monacoFiles[fileName];
 
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeFileNameRef = useRef(fileName);
   useEffect(() => {
@@ -165,31 +161,6 @@ function App() {
     });
   }
 
-  async function handleEditorChange(
-    value: string | undefined,
-    _e: editor.IModelContentChangedEvent
-  ) {
-    if (value && fileName) {
-      setMonacoFiles((prev) => ({
-        ...prev,
-        [fileName]: {
-          ...prev[fileName],
-          value: value,
-        },
-      }));
-
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-
-      debounceTimerRef.current = setTimeout(async () => {
-        if (webContainer.current) {
-          await writeToWebContainer(webContainer.current, fileName, value);
-        }
-      }, 50);
-    }
-  }
-
   useEffect(() => {
     terminalRef.current = new Terminal(terminalOptions);
     terminalAddonRef.current = new FitAddon();
@@ -197,9 +168,6 @@ function App() {
     const container = webContainer.current;
 
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
       if (resizeCleanupRef.current) {
         resizeCleanupRef.current();
       }
@@ -240,28 +208,11 @@ function App() {
           </div>
         </div>
       ) : (
-        <Editor
-          className="h-full"
-          theme="catppuccin-mocha"
-          path={activeFile?.name}
-          loading={
-            <div className="loader-wrapper">
-              <div className="spinner"></div>
-              <div className="loading-text">Initializing Editor</div>
-            </div>
-          }
-          defaultLanguage={getMonacoLanguage(activeFile?.language)}
-          defaultValue={activeFile?.value}
-          beforeMount={handleEditorWillMount}
+        <CodeEditor
+          activeFile={activeFile}
+          fileName={fileName}
+          webContainerRef={webContainer}
           onMount={handleEditorDidMount}
-          onChange={handleEditorChange}
-          options={{
-            automaticLayout: true,
-            minimap: { enabled: false },
-            fontSize: 14,
-            wordWrap: 'on',
-            scrollBeyondLastLine: false,
-          }}
         />
       )}
       <Preview
