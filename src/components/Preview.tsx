@@ -49,6 +49,7 @@ export default function Preview({
         onMouseDown={handleMouseDownCol2}
       />
       <iframe
+        allow="cross-origin-isolated"
         className="ml-1 h-full w-full"
         ref={iFrameRef}
         src="loading.html"
