@@ -66,7 +66,7 @@ export default function Sidebar({
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ bla: 'Jorge' }),
+          body: JSON.stringify({ hi: 'Jorge' }),
         }
       );
 
