@@ -26,9 +26,13 @@ import TerminalContainer from './components/TerminalContainer';
 import CodeEditor from './components/CodeEditor';
 import { terminalOptions } from './services/terminal';
 
-const url =
-  new URL(window.location.href).searchParams.get('q') ??
-  'SDG-027/04_React_Intro/main/04-react-state-korrekturen/002-light-bulb';
+const params = new URL(window.location.href).searchParams;
+
+const url = (
+  params.get('q') ?? 'StephanUllmann/webcontainer-demos/tree/main/React-TS'
+).replace('/tree/', '/');
+const startFile = params.get('file') ?? '';
+const loadOnStart = params.get('load') === 'true';
 
 const isDev = import.meta.env.VITE_IS_DEV === 'true';
 
@@ -37,6 +41,7 @@ const isDev = import.meta.env.VITE_IS_DEV === 'true';
  * file tree, terminal, and preview pane iframe.
  */
 function App() {
+  console.log({ startFile, loadOnStart, url });
   const iFrameRef = useRef<HTMLIFrameElement>(null);
   const terminalDivRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
@@ -120,7 +125,8 @@ function App() {
 
     if (cleanup) resizeCleanupRef.current = cleanup;
 
-    if ('src/App.jsx' in mFiles) setFileName('src/App.jsx');
+    if (startFile in mFiles) setFileName(startFile);
+    else if ('src/App.jsx' in mFiles) setFileName('src/App.jsx');
     else if ('src/App.tsx' in mFiles) setFileName('src/App.tsx');
     else if ('src/index.ts' in mFiles) setFileName('src/index.ts');
 
@@ -142,7 +148,7 @@ function App() {
 
     if (
       isNode &&
-      !isDev &&
+      loadOnStart &&
       webContainer.current &&
       terminalRef.current &&
       iFrameRef.current

@@ -48,6 +48,9 @@ function FileTreeComponent({
             <button
               onClick={() => {
                 setActiveFile(fullPath);
+                const url = new URL(window.location.href);
+                url.searchParams.set('file', fullPath);
+                window.history.pushState({}, '', url);
               }}
               className={`w-full cursor-pointer px-4 py-1 text-left text-sm transition-colors duration-150 select-none ${
                 activeFile === fullPath
@@ -63,7 +66,7 @@ function FileTreeComponent({
 
       return (
         <li key={fullPath}>
-          <details className="group">
+          <details open={activeFile.includes(fullPath)} className="group">
             <summary className="cursor-pointer px-4 py-1 text-start text-sm font-medium text-slate-300 transition-colors select-none hover:text-slate-100">
               {key}
             </summary>
