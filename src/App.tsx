@@ -41,7 +41,6 @@ const isDev = import.meta.env.VITE_IS_DEV === 'true';
  * file tree, terminal, and preview pane iframe.
  */
 function App() {
-  console.log({ startFile, loadOnStart, url });
   const iFrameRef = useRef<HTMLIFrameElement>(null);
   const terminalDivRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
@@ -60,6 +59,8 @@ function App() {
   const activeFile = monacoFiles[fileName];
 
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+
+  const [isExpress, setIsExpress] = useState(false);
 
   const activeFileNameRef = useRef(fileName);
   useEffect(() => {
@@ -145,6 +146,8 @@ function App() {
 
     terminalAddonRef.current.fit();
     const isNode = 'package.json' in mFiles;
+    if (isNode && mFiles['package.json'].value.includes('express'))
+      setIsExpress(true);
 
     if (
       isNode &&
@@ -206,6 +209,7 @@ function App() {
         setIsDragging={setIsDragging}
         webContainer={webContainer}
         iFrameRef={iFrameRef}
+        isExpress={isExpress}
       />
       {isFetchingProject ? (
         <div className="flex h-full items-center justify-center bg-[#1e1e2e]">

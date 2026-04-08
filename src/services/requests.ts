@@ -11,7 +11,6 @@ export async function fetchFromContainerAPI(
   }
 
   const encodedInit = cleanInit ? btoa(JSON.stringify(cleanInit)) : '';
-
   const nodeScript = `
     async function run() {
       try {
