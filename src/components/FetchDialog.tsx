@@ -21,23 +21,29 @@ interface FetchElement extends HTMLFormElement {
   readonly elements: FetchElements;
 }
 
+type Init = { path: string; method: string; body?: string; headers: string };
+
 async function handleTestFetch(
   webContainer: WebContainer,
   iFrame: HTMLIFrameElement,
-  init: { path: string; method: string; body: string; headers: string }
+  init: Init
 ) {
   const url = sessionStorage.getItem('container_url');
   if (!url) return;
 
   try {
     // 1. Fetch the data using the safe Node Base64 script
-    const response = await fetchFromContainerAPI(webContainer, init.path, {
-      method: init.method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: init.body,
-    });
+    const response = await fetchFromContainerAPI(
+      webContainer,
+      url + init.path,
+      {
+        method: init.method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: init.body,
+      }
+    );
 
     console.log('Got response from container API:', response);
 
@@ -58,12 +64,14 @@ export default function FetchDialog({
     e.preventDefault();
     dialogRef.current?.close();
     const { path, method, body, headers } = e.currentTarget.elements;
-    const init = {
+    const init: Init = {
       path: path.value,
       method: method.value,
-      body: JSON.stringify(JSON.parse(body.value)),
+
       headers: headers.value,
     };
+    if ('GET' !== method.value)
+      init.body = JSON.stringify(JSON.parse(body.value));
     const wc = webContainer.current;
     const iFrame = iFrameRef.current;
     if (!wc || !iFrame) return;
@@ -108,8 +116,8 @@ export default function FetchDialog({
             <input
               type="text"
               name="path"
-              defaultValue="http://localhost:3000/echo"
-              placeholder="http://localhost:3000/echo"
+              defaultValue="/echo"
+              placeholder="/echo"
               className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 outline-none placeholder:text-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </label>
