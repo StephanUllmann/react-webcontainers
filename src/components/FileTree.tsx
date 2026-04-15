@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState, type MouseEvent } from 'react';
 import type { MonacoFiles } from '../types';
 
 type FileTree = {
@@ -20,7 +20,22 @@ function FileTreeComponent({
   activeFile: string;
   setActiveFile: React.Dispatch<React.SetStateAction<string>>;
 }) {
+  const [openedPaths, setOpenedPaths] = useState(() => {
+    const initialPath = new URL(window.location.href).searchParams.get('file');
+    if (!initialPath) return [];
+    return initialPath
+      .split('/')
+      .map((p, ind, arr) => (ind > 0 ? arr.slice(0, ind + 1).join('/') : p));
+  });
   const fileKeys = Object.keys(files).sort().join(',');
+
+  const handlePathClick = (fullPath: string) => {
+    const isOpen = openedPaths.includes(fullPath);
+    const newPaths = isOpen
+      ? openedPaths.filter((p) => p !== fullPath)
+      : [...openedPaths, fullPath];
+    setOpenedPaths(newPaths);
+  };
 
   const computedTree = useMemo(() => {
     const fileTree: FileTree = {};
@@ -66,8 +81,14 @@ function FileTreeComponent({
 
       return (
         <li key={fullPath}>
-          <details open={activeFile.includes(fullPath)} className="group">
-            <summary className="cursor-pointer px-4 py-1 text-start text-sm font-medium text-slate-300 transition-colors select-none hover:text-slate-100">
+          <details open={openedPaths.includes(fullPath)} className="group">
+            <summary
+              onClick={(e: MouseEvent<HTMLElement>) => {
+                e.preventDefault();
+                handlePathClick(fullPath);
+              }}
+              className="cursor-pointer px-4 py-1 text-start text-sm font-medium text-slate-300 transition-colors select-none hover:text-slate-100"
+            >
               {key}
             </summary>
             <ul className="ml-3 flex flex-col border-l border-slate-700/50 pl-1">
