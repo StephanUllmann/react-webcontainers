@@ -21,7 +21,6 @@ export default function CodeEditor({
   onMount,
 }: CodeEditorProps) {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {

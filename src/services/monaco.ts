@@ -48,7 +48,7 @@ export function convertToMonacoFiles(tree: FileSystemTree, basePath = '') {
     if ('file' in node && 'contents' in node.file) {
       const contents = node.file.contents;
       monacoFiles[fullPath] = {
-        name: name,
+        name: fullPath,
         language: getMonacoLanguage(name),
         value:
           typeof contents === 'string'

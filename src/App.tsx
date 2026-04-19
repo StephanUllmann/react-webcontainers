@@ -149,20 +149,14 @@ function App() {
     if (isNode && mFiles['package.json'].value.includes('express'))
       setIsExpress(true);
 
-    if (
-      isNode &&
-      loadOnStart &&
-      webContainer.current &&
-      terminalRef.current &&
-      iFrameRef.current
-    ) {
+    if (isNode && loadOnStart) {
       const installCode = await installDependencies(
-        webContainer.current,
+        webContainer.current!,
         terminalRef.current,
         iFrameRef.current
       );
       if (installCode !== 0) return;
-      startDevServer(webContainer.current, terminalRef.current);
+      startDevServer(webContainer.current!, terminalRef.current);
     }
     webContainer.current!.on('server-ready', (_port, url) => {
       injectTypesFromWebContainer(webContainer.current!, _monaco);
