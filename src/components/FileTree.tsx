@@ -102,7 +102,7 @@ function FileTreeComponent({
 
   return (
     <div className="scrollbar max-h-screen overflow-y-auto">
-      <ul className="flex grow flex-col overflow-y-auto py-2">
+      <ul className="flex grow flex-col overflow-y-auto">
         {renderTree(computedTree)}
       </ul>
     </div>

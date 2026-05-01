@@ -199,8 +199,10 @@ function App() {
         fileName={fileName}
         setFileName={setFileName}
         setCol1={setCol1}
+        col1={col1}
         setCol2={setCol2}
         setIsDragging={setIsDragging}
+        webContainer={webContainer}
       />
       {isFetchingProject ? (
         <div className="bg-(--bg-primary flex h-full items-center justify-center">

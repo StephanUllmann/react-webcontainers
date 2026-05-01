@@ -239,6 +239,17 @@ export async function startDevServer(
   );
 }
 
+export async function createFile(webcontainer: WebContainer, filename: string) {
+  const lastSlashIndex = filename.lastIndexOf('/');
+
+  if (lastSlashIndex !== -1) {
+    const dirPath = filename.substring(0, lastSlashIndex);
+
+    await webcontainer.fs.mkdir(dirPath, { recursive: true });
+  }
+
+  await webcontainer.fs.writeFile(filename, '');
+}
 /**
  * Writes text content to a specific file inside the WebContainer virtual file system.
  *
