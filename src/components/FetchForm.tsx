@@ -23,7 +23,7 @@ interface FetchElement extends HTMLFormElement {
 
 type Init = { path: string; method: string; body?: string; headers: string };
 
-async function handleTestFetch(
+async function handleFetch(
   webContainer: WebContainer,
   iFrame: HTMLIFrameElement,
   init: Init
@@ -81,16 +81,16 @@ export default function FetchForm({
     const iFrame = iFrameRef.current;
     if (!wc || !iFrame) return;
 
-    handleTestFetch(wc, iFrame, init);
+    handleFetch(wc, iFrame, init);
   }
 
   return (
     <form
-      className="flex w-full flex-col gap-2 border border-slate-800 bg-(--bg-primary) p-2"
+      className="flex w-full flex-col gap-2 border border-slate-800 bg-(--bg-primary) pt-0 pr-0 pl-0.5"
       onSubmit={handleSubmit}
     >
       <div className="flex flex-col items-start gap-1.5">
-        <div className="flex w-full rounded border border-slate-800 bg-slate-950 focus-within:border-slate-700 focus-within:ring-1 focus-within:ring-slate-800">
+        <div className="flex w-full border border-slate-800 bg-slate-950 focus-within:border-slate-700 focus-within:ring-1 focus-within:ring-slate-800">
           <select
             name="method"
             value={method}
@@ -112,7 +112,7 @@ export default function FetchForm({
           <div className="m-0.5 flex justify-end">
             <button
               type="submit"
-              className="h-full rounded bg-slate-700 px-3 py-1 text-xs font-medium text-slate-200 transition-colors hover:bg-slate-600 active:bg-slate-700"
+              className="h-full bg-slate-700 px-3 py-1 text-xs font-medium text-slate-200 transition-colors hover:bg-slate-600 active:bg-slate-700"
             >
               Request
             </button>
@@ -122,7 +122,7 @@ export default function FetchForm({
 
       {/* Grid Area Layout */}
       <div
-        className="relative grid gap-x-4 pt-1"
+        className="relative grid pt-0"
         style={{
           gridTemplateColumns: '1fr 1fr',
           gridTemplateAreas: needsBody
@@ -134,14 +134,14 @@ export default function FetchForm({
           <details name="request-options" className="contents">
             <summary
               style={{ gridArea: 'tab-a' }}
-              className="cursor-pointer border-b-2 border-transparent px-1 pb-1 text-xs font-medium text-slate-400 transition-colors outline-none select-none hover:text-slate-200"
+              className="cursor-pointer border-transparent px-1 text-xs font-medium text-slate-400 transition-colors outline-none select-none hover:text-slate-200"
             >
               Body
             </summary>
             <textarea
               name="body"
               style={{ gridArea: 'content' }}
-              className="absolute inset-0 mt-1 min-h-20 w-full rounded border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="absolute inset-0 min-h-20 w-full border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
               defaultValue={JSON.stringify({ '': '' }, null, 2)}
             ></textarea>
           </details>
@@ -150,7 +150,7 @@ export default function FetchForm({
         <details name="request-options" className="contents">
           <summary
             style={{ gridArea: 'tab-b' }}
-            className="cursor-pointer border-b-2 border-transparent px-1 pb-1 text-xs font-medium text-slate-400 transition-colors outline-none select-none hover:text-slate-200"
+            className="cursor-pointer border-transparent px-1 pb-1 text-xs font-medium text-slate-400 transition-colors outline-none select-none hover:text-slate-200"
           >
             Headers
           </summary>
@@ -162,7 +162,7 @@ export default function FetchForm({
               null,
               2
             )}
-            className="absolute inset-0 mt-1 min-h-20 w-full rounded border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="absolute inset-0 min-h-20 w-full border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
           ></textarea>
         </details>
       </div>
