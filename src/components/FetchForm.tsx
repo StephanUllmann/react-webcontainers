@@ -105,8 +105,8 @@ export default function FetchForm({
           <input
             type="text"
             name="path"
-            defaultValue="/echo"
-            placeholder="/echo"
+            defaultValue="/"
+            placeholder="/"
             className="flex-1 bg-transparent px-3 py-2 text-xs text-slate-200 outline-none placeholder:text-slate-600"
           />
           <div className="m-0.5 flex justify-end">
