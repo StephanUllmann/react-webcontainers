@@ -1,4 +1,6 @@
 import type { RefObject } from 'react';
+import type { WebContainer } from '@webcontainer/api';
+import FetchForm from './FetchForm';
 
 interface PreviewProps {
   iFrameRef: RefObject<HTMLIFrameElement | null>;
@@ -6,6 +8,8 @@ interface PreviewProps {
   setIsDragging: React.Dispatch<React.SetStateAction<boolean>>;
   col1: number;
   setCol2: React.Dispatch<React.SetStateAction<number>>;
+  isExpress: boolean;
+  webContainer: React.RefObject<WebContainer | null>;
 }
 
 /**
@@ -20,6 +24,8 @@ export default function Preview({
   setIsDragging,
   col1,
   setCol2,
+  isExpress,
+  webContainer,
 }: PreviewProps) {
   const handleMouseDownCol2 = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -43,7 +49,10 @@ export default function Preview({
   };
 
   return (
-    <div className="relative flex h-full w-full">
+    <div className="relative flex h-full w-full flex-col">
+      {isExpress && (
+        <FetchForm webContainer={webContainer} iFrameRef={iFrameRef} />
+      )}
       <div
         className="absolute top-0 bottom-0 left-0 z-10 h-full w-1 cursor-col-resize bg-slate-800 transition-all hover:bg-slate-700 active:bg-slate-700"
         onMouseDown={handleMouseDownCol2}

@@ -52,7 +52,7 @@ export default function TerminalContainer({
       <div
         ref={terminalDivRef}
         id="terminal"
-        className="h-8/10 p-2 pt-3 text-start"
+        className="h-8/10 p-2 text-start"
         style={{
           height: `${window.innerHeight - row}px`,
         }}

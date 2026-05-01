@@ -45,7 +45,7 @@ export default function CodeEditor({
 
   return (
     <Editor
-      className="h-full"
+      className="-ml-2 h-full pt-2.5 shadow-transparent drop-shadow-transparent"
       theme="catppuccin-mocha"
       path={activeFile?.name}
       loading={

@@ -29,7 +29,7 @@ import { terminalOptions } from './services/terminal';
 const params = new URL(window.location.href).searchParams;
 
 const url = (
-  params.get('q') ?? 'StephanUllmann/webcontainer-demos/tree/main/React-TS'
+  params.get('q') ?? 'StephanUllmann/webcontainer-demos/tree/main/some-backend'
 ).replace('/tree/', '/');
 const startFile = params.get('file') ?? '';
 const loadOnStart = params.get('load') === 'true';
@@ -201,12 +201,9 @@ function App() {
         setCol1={setCol1}
         setCol2={setCol2}
         setIsDragging={setIsDragging}
-        webContainer={webContainer}
-        iFrameRef={iFrameRef}
-        isExpress={isExpress}
       />
       {isFetchingProject ? (
-        <div className="flex h-full items-center justify-center bg-[#1e1e2e]">
+        <div className="bg-(--bg-primary flex h-full items-center justify-center">
           <div className="loader-wrapper">
             <div className="spinner"></div>
             <div className="loading-text text-white">Fetching Project</div>
@@ -226,6 +223,8 @@ function App() {
         setIsDragging={setIsDragging}
         col1={col1}
         setCol2={setCol2}
+        isExpress={isExpress}
+        webContainer={webContainer}
       />
       <TerminalContainer
         terminalDivRef={terminalDivRef}
