@@ -25,6 +25,7 @@ import Preview from './components/Preview';
 import TerminalContainer from './components/TerminalContainer';
 import CodeEditor from './components/CodeEditor';
 import { terminalOptions } from './services/terminal';
+import { runPythonAndRender } from './services/pythonRunner';
 
 const params = new URL(window.location.href).searchParams;
 
@@ -61,10 +62,21 @@ function App() {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   const [isExpress, setIsExpress] = useState(false);
+  const [isPy, setIsPy] = useState(false);
 
   const activeFileNameRef = useRef(fileName);
+
+  // Layout State
+  const [col1, setCol1] = useState(250); // File Tree width
+  const [col2, setCol2] = useState(() => (window.innerWidth + 250) / 2); // Editor + File Tree width
+  const [row, setRow] = useState(() => window.innerHeight * 0.75); // Editor + File Tree height
+  const [isDragging, setIsDragging] = useState(false);
+
   useEffect(() => {
     activeFileNameRef.current = fileName;
+    if (resizeCleanupRef.current && fileName.endsWith('.py')) {
+      runPythonAndRender(webContainer.current!, iFrameRef.current!, fileName);
+    }
   }, [fileName]);
 
   useEffect(() => {
@@ -88,12 +100,6 @@ function App() {
       isMounted = false;
     };
   }, []);
-
-  // Layout State
-  const [col1, setCol1] = useState(250); // File Tree width
-  const [col2, setCol2] = useState(() => (window.innerWidth + 250) / 2); // Editor + File Tree width
-  const [row, setRow] = useState(() => window.innerHeight * 0.75); // Editor + File Tree height
-  const [isDragging, setIsDragging] = useState(false);
 
   async function handleEditorDidMount(
     editor: editor.IStandaloneCodeEditor,
@@ -146,6 +152,12 @@ function App() {
 
     terminalAddonRef.current.fit();
     const isNode = 'package.json' in mFiles;
+    let preparePy = false;
+    if (!isNode && Object.keys(files.current).some((f) => f.endsWith('.py'))) {
+      preparePy = true;
+      setIsPy(true);
+    }
+
     if (isNode && mFiles['package.json'].value.includes('express'))
       setIsExpress(true);
 
@@ -158,6 +170,11 @@ function App() {
       if (installCode !== 0) return;
       startDevServer(webContainer.current!, terminalRef.current);
     }
+
+    if (preparePy && fileName.endsWith('.py')) {
+      runPythonAndRender(webContainer.current!, iFrameRef.current!, fileName);
+    }
+
     webContainer.current!.on('server-ready', (_port, url) => {
       injectTypesFromWebContainer(webContainer.current!, _monaco);
       sessionStorage.setItem('container_url', url);
@@ -218,6 +235,32 @@ function App() {
           webContainerRef={webContainer}
           onMount={handleEditorDidMount}
         />
+      )}
+      {isPy && (
+        <button
+          className="absolute top-2 right-5 z-50 cursor-pointer"
+          onClick={() =>
+            runPythonAndRender(
+              webContainer.current!,
+              iFrameRef.current!,
+              fileName
+            )
+          }
+        >
+          <svg
+            width="40px"
+            height="40px"
+            viewBox="0 0 32 32"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            stroke="currentcolor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+          >
+            <path d="M10 30 L26 16 10 2 Z" />
+          </svg>
+        </button>
       )}
       <Preview
         iFrameRef={iFrameRef}
