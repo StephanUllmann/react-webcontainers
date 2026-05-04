@@ -7,6 +7,7 @@ import '@xterm/xterm/css/xterm.css';
 
 import type { Monaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
+// import { loadPyodide } from 'pyodide';
 import { mockData } from './services/mock';
 import {
   initWebContainer,
@@ -25,7 +26,11 @@ import Preview from './components/Preview';
 import TerminalContainer from './components/TerminalContainer';
 import CodeEditor from './components/CodeEditor';
 import { terminalOptions } from './services/terminal';
-import { runPythonAndRender } from './services/pythonRunner';
+import {
+  runPyOdideAndRender,
+  runPythonAndRender,
+} from './services/pythonRunner';
+import type { PyodideAPI } from 'pyodide';
 
 const params = new URL(window.location.href).searchParams;
 
@@ -60,6 +65,8 @@ function App() {
   const activeFile = monacoFiles[fileName];
 
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const pyodidePromiseRef = useRef<Promise<any> | null>(null);
+  const pyodideRef = useRef<PyodideAPI | null>(null);
 
   const [isExpress, setIsExpress] = useState(false);
   const [isPy, setIsPy] = useState(false);
@@ -75,7 +82,13 @@ function App() {
   useEffect(() => {
     activeFileNameRef.current = fileName;
     if (resizeCleanupRef.current && fileName.endsWith('.py')) {
-      runPythonAndRender(webContainer.current!, iFrameRef.current!, fileName);
+      // runPythonAndRender(webContainer.current!, iFrameRef.current!, fileName);
+      runPyOdideAndRender(
+        webContainer.current!,
+        pyodideRef.current!,
+        iFrameRef.current!,
+        fileName
+      );
     }
   }, [fileName]);
 
@@ -153,11 +166,13 @@ function App() {
     terminalAddonRef.current.fit();
     const isNode = 'package.json' in mFiles;
     let preparePy = false;
+
     if (!isNode && Object.keys(files.current).some((f) => f.endsWith('.py'))) {
       preparePy = true;
       setIsPy(true);
     }
 
+    // --- NODE.JS FLOW ---
     if (isNode && mFiles['package.json'].value.includes('express'))
       setIsExpress(true);
 
@@ -171,9 +186,94 @@ function App() {
       startDevServer(webContainer.current!, terminalRef.current);
     }
 
-    if (preparePy && fileName.endsWith('.py')) {
-      runPythonAndRender(webContainer.current!, iFrameRef.current!, fileName);
+    if (preparePy) {
+      const { loadPyodide } = await import('pyodide');
+      // 1. Define the lazy-loader function right here for now
+      const initPyodide = () => {
+        if (!pyodidePromiseRef.current) {
+          pyodidePromiseRef.current = (async () => {
+            terminalRef.current!.write(
+              '\x1b[33mDownloading Pyodide (Background)...\x1b[0m\r\n'
+            );
+
+            try {
+              // Fetch the WASM core
+              const pyodide = await loadPyodide({
+                indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.29.3/full/',
+              });
+
+              // Handle requirements.txt quietly in the background
+              if ('requirements.txt' in files.current!) {
+                terminalRef.current!.write(
+                  '\x1b[33mInstalling Python dependencies...\x1b[0m\r\n'
+                );
+                const reqContent =
+                  files.current['requirements.txt'].file.contents;
+
+                await pyodide.loadPackage('micropip');
+                const micropip = pyodide.pyimport('micropip');
+
+                console.log(reqContent);
+                const packages = reqContent
+                  .split('\n')
+                  .map((p: string) => p.trim())
+                  .filter(Boolean); // removes empty lines
+
+                if (packages.length > 0) {
+                  await micropip.install(packages);
+                }
+              }
+
+              terminalRef.current!.write(
+                '\x1b[32mPyodide Environment Ready!\x1b[0m\r\n'
+              );
+              pyodideRef.current = pyodide;
+              return pyodide;
+            } catch (error) {
+              terminalRef.current!.write(
+                `\x1b[31mPyodide Initialization Failed: ${error}\x1b[0m\r\n`
+              );
+              throw error;
+            }
+          })();
+        }
+        return pyodidePromiseRef.current;
+      };
+
+      // 2. Fire and forget: kick off the download in the background without blocking Monaco
+      initPyodide();
+
+      // 3. Handle the initial script execution
+      if (fileName.endsWith('.py')) {
+        // Wrap in an IIFE (Immediately Invoked Function Expression) so we can await locally
+        // without forcing the parent handleEditorDidMount function to pause.
+        (async () => {
+          terminalRef.current!.write(
+            '\x1b[90mWaiting for Python environment to boot before running script...\x1b[0m\r\n'
+          );
+
+          try {
+            // This will pause *only this inline block* until the background download completes
+            const pyodide = await initPyodide();
+
+            // Execute the file and push the results to the iframe
+            await runPyOdideAndRender(
+              webContainer.current!,
+              pyodide,
+              iFrameRef.current!,
+              fileName
+            );
+          } catch (error) {
+            // If the background loader failed, or the execution failed, catch it safely
+            console.error('Failed to execute initial Python script:', error);
+          }
+        })();
+      }
     }
+
+    // if (preparePy && fileName.endsWith('.py')) {
+    //   runPythonAndRender(webContainer.current!, iFrameRef.current!, fileName);
+    // }
 
     webContainer.current!.on('server-ready', (_port, url) => {
       injectTypesFromWebContainer(webContainer.current!, _monaco);
@@ -240,8 +340,9 @@ function App() {
         <button
           className="absolute top-2 right-5 z-50 cursor-pointer"
           onClick={() =>
-            runPythonAndRender(
+            runPyOdideAndRender(
               webContainer.current!,
+              pyodideRef.current!,
               iFrameRef.current!,
               fileName
             )
