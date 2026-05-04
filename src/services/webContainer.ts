@@ -113,7 +113,12 @@ export async function initWebContainer(
  */
 export function watchWebContainerFiles(
   webcontainerInstance: WebContainer,
-  dispatchUpdate: (path: string, content: string | null) => void,
+  // ADD isActiveFile flag to the callback signature
+  dispatchUpdate: (
+    path: string,
+    content: string | null,
+    isActiveFile: boolean
+  ) => void,
   getActiveFileName: () => string
 ) {
   if (!webcontainerInstance) return null;
@@ -146,9 +151,8 @@ export function watchWebContainerFiles(
         return;
       }
 
-      if (event === 'change' && relativePath === getActiveFileName()) {
-        return;
-      }
+      // 1. DETERMINE IF THIS IS THE ACTIVE FILE
+      const isActiveFile = relativePath === getActiveFileName();
 
       console.log('RUNNING WATCHER', filename);
 
@@ -163,9 +167,11 @@ export function watchWebContainerFiles(
               typeof contentRaw === 'string'
                 ? contentRaw
                 : new TextDecoder().decode(contentRaw);
-            dispatchUpdate(relativePath, content);
+            // 3. PASS THE FLAG
+            dispatchUpdate(relativePath, content, isActiveFile);
           } catch {
-            dispatchUpdate(relativePath, null);
+            // 3. PASS THE FLAG
+            dispatchUpdate(relativePath, null, isActiveFile);
           }
         } else if (event === 'change') {
           const contentRaw = await webcontainerInstance.fs.readFile(
@@ -176,7 +182,8 @@ export function watchWebContainerFiles(
             typeof contentRaw === 'string'
               ? contentRaw
               : new TextDecoder().decode(contentRaw);
-          dispatchUpdate(relativePath, content);
+          // 3. PASS THE FLAG
+          dispatchUpdate(relativePath, content, isActiveFile);
         }
       } catch (error) {
         console.warn(

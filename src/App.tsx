@@ -25,11 +25,7 @@ import Preview from './components/Preview';
 import TerminalContainer from './components/TerminalContainer';
 import CodeEditor from './components/CodeEditor';
 import { terminalOptions } from './services/terminal';
-import {
-  initializePyodite,
-  initPyodide,
-  runPyOdideAndRender,
-} from './services/pythonRunner';
+import { initPyodide, runPyOdideAndRender } from './services/pythonRunner';
 import type { PyodideAPI } from 'pyodide';
 
 const params = new URL(window.location.href).searchParams;
@@ -65,7 +61,6 @@ function App() {
   const activeFile = monacoFiles[fileName];
 
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const pyodidePromiseRef = useRef<Promise<PyodideAPI> | null>(null);
   const pyodideRef = useRef<PyodideAPI | null>(null);
 
   const [isExpress, setIsExpress] = useState(false);
@@ -84,12 +79,7 @@ function App() {
     if (pyodideRef.current && fileName.endsWith('.py')) {
       // runPythonAndRender(webContainer.current!, iFrameRef.current!, fileName);
       console.log(pyodideRef);
-      runPyOdideAndRender(
-        webContainer.current!,
-        pyodideRef.current!,
-        iFrameRef.current!,
-        fileName
-      );
+      runPyOdideAndRender(pyodideRef.current!, iFrameRef.current!, fileName);
     }
   }, [fileName]);
 
@@ -135,6 +125,21 @@ function App() {
     )
       return;
 
+    // --- 1. DETERMINE ENVIRONMENT FIRST ---
+    // Moving this to the top ensures the watcher closure captures the correct state immediately.
+    const isNode = 'package.json' in mFiles;
+    let preparePy = false;
+
+    if (!isNode && Object.keys(files.current).some((f) => f.endsWith('.py'))) {
+      preparePy = true;
+      setIsPy(true);
+    }
+
+    if (isNode && mFiles['package.json'].value.includes('express')) {
+      setIsExpress(true);
+    }
+
+    // --- 2. INIT WEBCONTAINER ---
     const cleanup = await initWebContainer(
       terminalRef,
       terminalAddonRef,
@@ -151,33 +156,32 @@ function App() {
     else if ('src/App.tsx' in mFiles) setFileName('src/App.tsx');
     else if ('src/index.ts' in mFiles) setFileName('src/index.ts');
 
+    // --- 3. WATCH FILES ---
     if (webContainer.current) {
       const fsWatcher = watchWebContainerFiles(
         webContainer.current,
-        async (path, content) => {
-          // 1. Update Monaco
-          setMonacoFiles((prev) => fsToMonaco(prev, path, content));
+        async (path, content, isActiveFile) => {
+          if (!isActiveFile) {
+            setMonacoFiles((prev) => fsToMonaco(prev, path, content));
+          }
 
-          // 2. NEW: Update Pyodide's filesystem instantly!
-          if (preparePy) {
-            await initPyodide(
-              pyodidePromiseRef.current,
-              terminalRef.current!,
-              files.current!,
-              pyodideRef.current!,
-              webContainer.current
-            ); // Ensures it's loaded
+          if (preparePy && pyodideRef.current && content !== null) {
+            const cleanPath = path.replace(/^\.\//, '').replace(/^\//, '');
+            const dir = cleanPath.split('/').slice(0, -1).join('/');
 
-            // Ensure the directory exists in Pyodide before writing
-            const dir = path.split('/').slice(0, -1).join('/');
             if (dir) {
               try {
-                pyodideRef.current!.FS.mkdirTree(dir);
-              } catch {} // mkdirTree creates nested dirs safely
+                pyodideRef.current.FS.mkdirTree(dir);
+              } catch {}
             }
 
-            // Write ONLY the file that just changed
-            pyodideRef.current!.FS.writeFile(path, content);
+            try {
+              pyodideRef.current.FS.writeFile(cleanPath, content, {
+                encoding: 'utf8',
+              });
+            } catch (err) {
+              console.error('Failed to sync file to Pyodide FS:', err);
+            }
           }
         },
         () => activeFileNameRef.current
@@ -188,18 +192,8 @@ function App() {
     }
 
     terminalAddonRef.current.fit();
-    const isNode = 'package.json' in mFiles;
-    let preparePy = false;
 
-    if (!isNode && Object.keys(files.current).some((f) => f.endsWith('.py'))) {
-      preparePy = true;
-      setIsPy(true);
-    }
-
-    // --- NODE.JS FLOW ---
-    if (isNode && mFiles['package.json'].value.includes('express'))
-      setIsExpress(true);
-
+    // --- 4. NODE.JS FLOW ---
     if (isNode && loadOnStart) {
       const installCode = await installDependencies(
         webContainer.current!,
@@ -210,22 +204,18 @@ function App() {
       startDevServer(webContainer.current!, terminalRef.current);
     }
 
+    // --- 5. PYTHON FLOW ---
     if (preparePy) {
-      await initializePyodite(
-        pyodidePromiseRef.current,
+      pyodideRef.current = await initPyodide(
         terminalRef.current,
         files.current!,
-        pyodideRef,
-        fileName,
-        webContainer.current!,
-        iFrameRef.current
+        webContainer.current!
       );
-      console.log(pyodideRef);
-    }
 
-    // if (preparePy && fileName.endsWith('.py')) {
-    //   runPythonAndRender(webContainer.current!, iFrameRef.current!, fileName);
-    // }
+      if (fileName.endsWith('.py')) {
+        runPyOdideAndRender(pyodideRef.current, iFrameRef.current!, fileName);
+      }
+    }
 
     webContainer.current!.on('server-ready', (_port, url) => {
       injectTypesFromWebContainer(webContainer.current!, _monaco);
@@ -294,7 +284,6 @@ function App() {
           onClick={() => {
             console.log(pyodideRef);
             runPyOdideAndRender(
-              webContainer.current!,
               pyodideRef.current!,
               iFrameRef.current!,
               fileName
