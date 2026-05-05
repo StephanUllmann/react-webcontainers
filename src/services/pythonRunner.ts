@@ -12,7 +12,6 @@ export async function runPyOdideAndRender(
   filename: string
 ) {
   let terminalOutput = '';
-  let base64Image = '';
 
   pyodide.setStdout({
     batched: (msg: string) => (terminalOutput += msg + '\n'),
@@ -21,26 +20,16 @@ export async function runPyOdideAndRender(
     batched: (msg: string) => (terminalOutput += msg + '\n'),
   });
 
-  try {
-    try {
-      pyodide.FS.unlink('plot.png');
-    } catch {} // Cleanup old plot
-
-    const code = pyodide.FS.readFile(filename, { encoding: 'utf8' });
-    await pyodide.runPythonAsync(code);
-
-    try {
-      const fileData = pyodide.FS.readFile('plot.png');
-      const binaryString = Array.from(fileData, (byte: number) =>
-        String.fromCharCode(byte)
-      ).join('');
-      base64Image = btoa(binaryString);
-    } catch {} // No plot
-  } catch (error) {
-    terminalOutput += `\nError: ${error}`;
+  const innerDoc = iframeElement.contentDocument;
+  if (!innerDoc) {
+    terminalOutput += '\nError: Cannot access iframe document.';
+    return;
   }
 
-  const htmlContent = `
+  // 1. Synchronously reset and prepare the iframe's DOM layout
+  // This destroys old plots in the UI and ensures we don't have to wait for 'srcdoc'
+  innerDoc.open();
+  innerDoc.write(`
     <!DOCTYPE html>
     <html>
       <head>
@@ -49,28 +38,70 @@ export async function runPyOdideAndRender(
           pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
           .error { color: #f44336; }
           .success { color: #4caf50; }
+          #plot-container { margin-top: 20px; border-top: 1px solid #333; padding-top: 20px; }
+          #plot-container:empty { display: none; margin: 0; padding: 0; border: none; }
+
+          #plot-container > div { background: white; padding: 10px; border-radius: 4px; display: inline-block; }
         </style>
       </head>
       <body>
         <h2>Python Execution Output</h2>
-        <pre class="${terminalOutput.includes('Error:') ? 'error' : 'success'}">${
-          terminalOutput.replace(/</g, '&lt;').replace(/>/g, '&gt;') ||
-          'No output'
-        }</pre>
-        ${
-          base64Image
-            ? `
-        <hr style="border-color: #333; margin: 20px 0;" />
-        <h3>Generated Plot</h3>
-        <img src="data:image/png;base64,${base64Image}" style="max-width: 100%; border: 1px solid #555;" />
-        `
-            : ''
-        }
+        <pre id="terminal-output">Running...</pre>
+        <div id="plot-container"></div>
       </body>
     </html>
-  `;
+  `);
+  innerDoc.close();
 
-  iframeElement.srcdoc = htmlContent;
+  const terminalEl = innerDoc.getElementById('terminal-output');
+  const plotContainer = innerDoc.getElementById('plot-container');
+
+  // 2. Clear Python's Matplotlib memory to prevent duplicate canvases
+  try {
+    await pyodide.runPythonAsync(`
+      import sys
+      if 'matplotlib.pyplot' in sys.modules:
+          sys.modules['matplotlib.pyplot'].close('all')
+    `);
+  } catch (e) {
+    // Fails safely if matplotlib isn't installed/imported
+  }
+
+  // 3. Setup the Synchronous DOM Interceptor
+  const originalAppend = document.body.appendChild.bind(document.body);
+
+  // @ts-ignore - Intercepting the DOM
+  document.body.appendChild = (node: Node) => {
+    if (node instanceof HTMLElement) {
+      // Adopt and append IMMEDIATELY, before Matplotlib draws to the canvas.
+      // This prevents the browser from wiping the drawing buffer!
+      const adoptedNode = innerDoc.adoptNode(node);
+      plotContainer?.appendChild(adoptedNode);
+      return adoptedNode;
+    }
+    return originalAppend(node);
+  };
+
+  try {
+    const code = pyodide.FS.readFile(filename, { encoding: 'utf8' });
+    await pyodide.runPythonAsync(code);
+  } catch (error) {
+    terminalOutput += `\nError: ${error}`;
+  } finally {
+    // 4. Restore normal DOM behavior
+    // @ts-ignore
+    document.body.appendChild = originalAppend;
+
+    // 5. Update the terminal output text and styling
+    if (terminalEl) {
+      terminalEl.innerHTML =
+        terminalOutput.replace(/</g, '&lt;').replace(/>/g, '&gt;') ||
+        'No output';
+      terminalEl.className = terminalOutput.includes('Error:')
+        ? 'error'
+        : 'success';
+    }
+  }
 }
 
 export async function syncFilesToPyodide(
