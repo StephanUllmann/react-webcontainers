@@ -19,6 +19,15 @@ export async function runPyOdideAndRender(
   pyodide.setStderr({
     batched: (msg: string) => (terminalOutput += msg + '\n'),
   });
+  pyodide.setStdin({
+    stdin: () => {
+      const userInput = window.prompt('Python is requesting input:');
+      const result = userInput !== null ? userInput : '';
+
+      terminalOutput += result + '\n';
+      return result + '\n';
+    },
+  });
 
   const innerDoc = iframeElement.contentDocument;
   if (!innerDoc) {
