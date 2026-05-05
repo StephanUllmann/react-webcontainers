@@ -215,3 +215,51 @@ export async function injectTypesFromWebContainer(
     console.error('Error injecting types into Monaco:', err);
   }
 }
+
+export async function syncProjectFilesToMonaco(
+  wc: WebContainer,
+  monaco: Monaco,
+  dirPath = ''
+) {
+  try {
+    const entries = await wc.fs.readdir(dirPath || '.', {
+      withFileTypes: true,
+    });
+
+    for (const entry of entries) {
+      // Skip node_modules and hidden directories to save memory
+      if (entry.name === 'node_modules' || entry.name.startsWith('.')) {
+        continue;
+      }
+
+      const fullPath = dirPath ? `${dirPath}/${entry.name}` : entry.name;
+
+      if (entry.isDirectory()) {
+        // Recursively read subdirectories
+        await syncProjectFilesToMonaco(wc, monaco, fullPath);
+      } else if (entry.isFile() && /\.(ts|tsx|js|jsx)$/.test(entry.name)) {
+        // Read file content
+        const content = await wc.fs.readFile(fullPath, 'utf-8');
+
+        // Define the URI matching the scheme used in your imports
+        const uri = monaco.Uri.parse(`file:///${fullPath}`);
+
+        // Check if the model already exists to avoid recreating it
+        const model = monaco.editor.getModel(uri);
+
+        if (!model) {
+          // Determine language based on extension
+          const language = getMonacoLanguage(entry.name);
+
+          // Create the model
+          monaco.editor.createModel(content, language, uri);
+        } else {
+          // If it exists, just update the value
+          model.setValue(content);
+        }
+      }
+    }
+  } catch (err) {
+    console.error(`Error syncing files from ${dirPath}:`, err);
+  }
+}

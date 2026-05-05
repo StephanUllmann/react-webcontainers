@@ -17,7 +17,9 @@ import {
 import {
   convertToMonacoFiles,
   fsToMonaco,
+  getMonacoLanguage,
   injectTypesFromWebContainer,
+  syncProjectFilesToMonaco,
 } from './services/monaco';
 import type { MonacoFiles } from './types';
 import Sidebar from './components/Sidebar';
@@ -158,6 +160,7 @@ function App() {
 
     // --- 3. WATCH FILES ---
     if (webContainer.current) {
+      // Ensure you have access to the monaco instance
       const fsWatcher = watchWebContainerFiles(
         webContainer.current,
         async (path, content, isActiveFile) => {
@@ -183,9 +186,29 @@ function App() {
               console.error('Failed to sync file to Pyodide FS:', err);
             }
           }
+
+          const absolutePath = path.startsWith('/') ? path : `/${path}`;
+          const uri = _monaco.Uri.parse(`file://${absolutePath}`);
+          const model = _monaco.editor.getModel(uri);
+
+          if (content === null) {
+            if (model) model.dispose();
+          } else {
+            if (!model) {
+              const language = getMonacoLanguage(path);
+              _monaco.editor.createModel(content, language, uri);
+            } else if (!isActiveFile && model.getValue() !== content) {
+              model.pushEditOperations(
+                [],
+                [{ range: model.getFullModelRange(), text: content }],
+                () => null
+              );
+            }
+          }
         },
         () => activeFileNameRef.current
       );
+
       if (fsWatcher) {
         watchFsCleanupRef.current = fsWatcher;
       }
@@ -194,6 +217,9 @@ function App() {
     terminalAddonRef.current.fit();
 
     // --- 4. NODE.JS FLOW ---
+    if (isNode) {
+      await syncProjectFilesToMonaco(webContainer.current!, _monaco);
+    }
     if (isNode && loadOnStart) {
       const installCode = await installDependencies(
         webContainer.current!,
@@ -217,7 +243,7 @@ function App() {
       }
     }
 
-    webContainer.current!.on('server-ready', (_port, url) => {
+    webContainer.current!.on('server-ready', async (_port, url) => {
       injectTypesFromWebContainer(webContainer.current!, _monaco);
       sessionStorage.setItem('container_url', url);
       iFrameRef.current!.src = url;

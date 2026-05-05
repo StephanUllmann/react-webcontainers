@@ -30,6 +30,7 @@ export function handleEditorWillMount(monaco: Monaco) {
     allowImportingTsExtensions: true,
     allowSyntheticDefaultImports: true,
     moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+    module: monaco.languages.typescript.ModuleKind.CommonJS,
     allowJs: true,
     jsx: monaco.languages.typescript.JsxEmit.ReactJSX,
   };

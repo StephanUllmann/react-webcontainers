@@ -269,11 +269,6 @@ export async function writeToWebContainer(
   filePath: string,
   content: string
 ) {
-  if (!webcontainerInstance) {
-    console.error('WebContainer is not booted yet.');
-    return;
-  }
-
   const absolutePath = filePath.startsWith('/') ? filePath : `/${filePath}`;
 
   try {
