@@ -113,7 +113,6 @@ export async function initWebContainer(
  */
 export function watchWebContainerFiles(
   webcontainerInstance: WebContainer,
-  // ADD isActiveFile flag to the callback signature
   dispatchUpdate: (
     path: string,
     content: string | null,
@@ -270,7 +269,6 @@ export async function writeToWebContainer(
   content: string
 ) {
   const absolutePath = filePath.startsWith('/') ? filePath : `/${filePath}`;
-
   try {
     await webcontainerInstance.fs.writeFile(absolutePath, content);
   } catch (error) {

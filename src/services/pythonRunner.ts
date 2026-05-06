@@ -55,7 +55,7 @@ export async function runPyOdideAndRender(
       </head>
       <body>
         <h2>Python Execution Output</h2>
-        <pre id="terminal-output">Running...</pre>
+        <pre id="terminal-output"></pre>
         <div id="plot-container"></div>
       </body>
     </html>

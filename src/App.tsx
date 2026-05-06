@@ -109,19 +109,37 @@ function App() {
 
   const saveCurrentFile = async () => {
     if (
-      editorRef.current &&
-      webContainer.current &&
-      activeFileNameRef.current
-    ) {
-      const currentValue = editorRef.current.getValue();
-      if (!currentValue.trim()) return;
-      await writeToWebContainer(
-        webContainer.current,
+      !editorRef.current ||
+      !webContainer.current ||
+      !activeFileNameRef.current
+    )
+      return;
+
+    const currentValue = editorRef.current.getValue();
+
+    try {
+      const existingContentRaw = await webContainer.current.fs.readFile(
         activeFileNameRef.current,
-        currentValue
+        'utf-8'
       );
-      console.log(`Auto-saved ${activeFileNameRef.current}`);
+
+      const existingContent =
+        typeof existingContentRaw === 'string'
+          ? existingContentRaw
+          : new TextDecoder().decode(existingContentRaw);
+
+      if (currentValue === existingContent) {
+        return;
+      }
+    } catch {
+      // silent error
     }
+
+    await writeToWebContainer(
+      webContainer.current,
+      activeFileNameRef.current,
+      currentValue
+    );
   };
 
   const handleFileChange = async (
@@ -133,8 +151,41 @@ function App() {
         : newFileNameOrUpdater;
 
     if (nextFileName === fileName) return;
+
     await saveCurrentFile();
     setFileName(nextFileName);
+  };
+
+  const syncToPyodide = (path: string, content: string) => {
+    if (!pyodideRef.current) return;
+    const cleanPath = path.replace(/^\.\//, '').replace(/^\//, '');
+    const dir = cleanPath.split('/').slice(0, -1).join('/');
+
+    if (dir) {
+      try {
+        pyodideRef.current.FS.mkdirTree(dir);
+      } catch {}
+    }
+
+    try {
+      pyodideRef.current.FS.writeFile(cleanPath, content, {
+        encoding: 'utf8',
+      });
+    } catch (err) {
+      console.error('Failed to sync file to Pyodide FS:', err);
+    }
+  };
+
+  const runCurrentPy = () => {
+    if (editorRef.current && activeFileNameRef.current) {
+      const currentValue = editorRef.current.getValue();
+      syncToPyodide(activeFileNameRef.current, currentValue);
+    }
+    runPyOdideAndRender(
+      pyodideRef.current!,
+      iFrameRef.current!,
+      activeFileNameRef.current
+    );
   };
 
   const handleEditorDidMount: OnMount = async (editor, _monaco) => {
@@ -154,8 +205,7 @@ function App() {
     )
       return;
 
-    // --- 1. DETERMINE ENVIRONMENT FIRST ---
-    // Moving this to the top ensures the watcher closure captures the correct state immediately.
+    // --- DETERMINE ENVIRONMENT ---
     const isNode = 'package.json' in mFiles;
     let preparePy = false;
 
@@ -168,7 +218,7 @@ function App() {
       setIsExpress(true);
     }
 
-    // --- 2. INIT WEBCONTAINER ---
+    // --- INIT WEBCONTAINER ---
     const cleanup = await initWebContainer(
       terminalRef,
       terminalAddonRef,
@@ -185,9 +235,8 @@ function App() {
     else if ('src/App.tsx' in mFiles) setFileName('src/App.tsx');
     else if ('src/index.ts' in mFiles) setFileName('src/index.ts');
 
-    // --- 3. WATCH FILES ---
+    // ---  WATCH FILES ---
     if (webContainer.current) {
-      // Ensure you have access to the monaco instance
       const fsWatcher = watchWebContainerFiles(
         webContainer.current,
         async (path, content, isActiveFile) => {
@@ -196,22 +245,7 @@ function App() {
           }
 
           if (preparePy && pyodideRef.current && content !== null) {
-            const cleanPath = path.replace(/^\.\//, '').replace(/^\//, '');
-            const dir = cleanPath.split('/').slice(0, -1).join('/');
-
-            if (dir) {
-              try {
-                pyodideRef.current.FS.mkdirTree(dir);
-              } catch {}
-            }
-
-            try {
-              pyodideRef.current.FS.writeFile(cleanPath, content, {
-                encoding: 'utf8',
-              });
-            } catch (err) {
-              console.error('Failed to sync file to Pyodide FS:', err);
-            }
+            syncToPyodide(path, content);
           }
 
           const absolutePath = path.startsWith('/') ? path : `/${path}`;
@@ -243,7 +277,7 @@ function App() {
 
     terminalAddonRef.current.fit();
 
-    // --- 4. NODE.JS FLOW ---
+    // ---  NODE.JS FLOW ---
     if (isNode) {
       await syncProjectFilesToMonaco(webContainer.current!, _monaco);
     }
@@ -257,7 +291,7 @@ function App() {
       startDevServer(webContainer.current!, terminalRef.current);
     }
 
-    // --- 5. PYTHON FLOW ---
+    // --- PYTHON FLOW ---
     if (preparePy) {
       pyodideRef.current = await initPyodide(
         terminalRef.current,
@@ -283,8 +317,11 @@ function App() {
     editor.addCommand(
       _monaco.KeyMod.CtrlCmd | _monaco.KeyCode.KeyS,
       async () => {
-        await editor.getAction('editor.action.formatDocument')?.run();
-        saveCurrentFile();
+        if (isNode) {
+          await editor.getAction('editor.action.formatDocument')?.run();
+        }
+        await saveCurrentFile();
+        if (preparePy) runCurrentPy();
       }
     );
   };
@@ -346,13 +383,7 @@ function App() {
       {isPy && pyodideRef && (
         <button
           className="absolute top-2 right-5 z-50 cursor-pointer"
-          onClick={() => {
-            runPyOdideAndRender(
-              pyodideRef.current!,
-              iFrameRef.current!,
-              fileName
-            );
-          }}
+          onClick={runCurrentPy}
         >
           <svg
             width="40px"
