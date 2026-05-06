@@ -39,7 +39,7 @@ export default function CodeEditor({
         if (webContainerRef.current) {
           await writeToWebContainer(webContainerRef.current, fileName, value);
         }
-      }, 50);
+      }, 500);
     }
   };
 
@@ -65,6 +65,7 @@ export default function CodeEditor({
         fontSize: 14,
         wordWrap: 'on',
         scrollBeyondLastLine: false,
+        // formatOnType: true,
       }}
     />
   );

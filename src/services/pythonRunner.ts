@@ -168,6 +168,9 @@ export async function initPyodide(
           .split('\n')
           .map((p) => p.trim())
           .filter(Boolean);
+
+        // if (packages.includes('Flask')) packages.push('sqlite3');
+
         if (packages.length > 0) {
           await micropip.install(packages);
         }

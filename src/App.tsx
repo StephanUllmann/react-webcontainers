@@ -5,7 +5,7 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 
-import type { Monaco } from '@monaco-editor/react';
+import type { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { mockData } from './services/mock';
 import {
@@ -13,6 +13,7 @@ import {
   installDependencies,
   startDevServer,
   watchWebContainerFiles,
+  writeToWebContainer,
 } from './services/webContainer';
 import {
   convertToMonacoFiles,
@@ -78,11 +79,10 @@ function App() {
 
   useEffect(() => {
     activeFileNameRef.current = fileName;
-    if (pyodideRef.current && fileName.endsWith('.py')) {
-      // runPythonAndRender(webContainer.current!, iFrameRef.current!, fileName);
-      console.log(pyodideRef);
-      runPyOdideAndRender(pyodideRef.current!, iFrameRef.current!, fileName);
-    }
+    // if (pyodideRef.current && fileName.endsWith('.py')) {
+    //   // runPythonAndRender(webContainer.current!, iFrameRef.current!, fileName);
+    //   runPyOdideAndRender(pyodideRef.current!, iFrameRef.current!, fileName);
+    // }
   }, [fileName]);
 
   useEffect(() => {
@@ -107,10 +107,37 @@ function App() {
     };
   }, []);
 
-  async function handleEditorDidMount(
-    editor: editor.IStandaloneCodeEditor,
-    _monaco: Monaco
-  ) {
+  const saveCurrentFile = async () => {
+    if (
+      editorRef.current &&
+      webContainer.current &&
+      activeFileNameRef.current
+    ) {
+      const currentValue = editorRef.current.getValue();
+      if (!currentValue.trim()) return;
+      await writeToWebContainer(
+        webContainer.current,
+        activeFileNameRef.current,
+        currentValue
+      );
+      console.log(`Auto-saved ${activeFileNameRef.current}`);
+    }
+  };
+
+  const handleFileChange = async (
+    newFileNameOrUpdater: string | ((prev: string) => string)
+  ) => {
+    const nextFileName =
+      typeof newFileNameOrUpdater === 'function'
+        ? newFileNameOrUpdater(fileName)
+        : newFileNameOrUpdater;
+
+    if (nextFileName === fileName) return;
+    await saveCurrentFile();
+    setFileName(nextFileName);
+  };
+
+  const handleEditorDidMount: OnMount = async (editor, _monaco) => {
     if (webContainer.current) return;
     files.current = isDev ? mockData : projectData;
     if (!files.current) return;
@@ -240,6 +267,10 @@ function App() {
 
       if (fileName.endsWith('.py')) {
         runPyOdideAndRender(pyodideRef.current, iFrameRef.current!, fileName);
+      } else {
+        setFileName(
+          Object.keys(files.current).find((f) => f.endsWith('.py')) ?? ''
+        );
       }
     }
 
@@ -248,7 +279,15 @@ function App() {
       sessionStorage.setItem('container_url', url);
       iFrameRef.current!.src = url;
     });
-  }
+
+    editor.addCommand(
+      _monaco.KeyMod.CtrlCmd | _monaco.KeyCode.KeyS,
+      async () => {
+        await editor.getAction('editor.action.formatDocument')?.run();
+        saveCurrentFile();
+      }
+    );
+  };
 
   useEffect(() => {
     terminalRef.current = new Terminal(terminalOptions);
@@ -282,7 +321,7 @@ function App() {
       <Sidebar
         monacoFiles={monacoFiles}
         fileName={fileName}
-        setFileName={setFileName}
+        setFileName={handleFileChange}
         setCol1={setCol1}
         col1={col1}
         setCol2={setCol2}
@@ -304,11 +343,10 @@ function App() {
           onMount={handleEditorDidMount}
         />
       )}
-      {isPy && (
+      {isPy && pyodideRef && (
         <button
           className="absolute top-2 right-5 z-50 cursor-pointer"
           onClick={() => {
-            console.log(pyodideRef);
             runPyOdideAndRender(
               pyodideRef.current!,
               iFrameRef.current!,
